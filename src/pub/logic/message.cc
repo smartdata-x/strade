@@ -640,6 +640,8 @@ std::string Status::to_string() {
   switch (state) {
     case SUCCESS:
       return "success";
+    case FAILED:
+      return "failed";
     case ERROR_MSG:
       return "error msg";
     case UNKNOWN_OPCODE:
@@ -648,6 +650,24 @@ std::string Status::to_string() {
       return "user not exist";
     case INVALID_TOKEN:
       return "invalid token";
+    case GROUP_NAME_ALREADAY_EXIST:
+      return "group name already exist";
+    case MYSQL_ERROR:
+      return "mysql error";
+    case GROUP_NOT_EXIST:
+      return "group not exist";
+    case STOCK_NOT_IN_GROUP:
+      return "stock not in group";
+    case STOCK_NOT_EXIST:
+      return "stock not exit";
+    case CAPITAL_NOT_ENOUGH:
+      return "capital not enough";
+    case NO_HOLDING_STOCK:
+      return "no holding stock";
+    case ORDER_NOT_EXIST:
+      return "order not exist";
+    case NOT_IN_ORDER_TIME:
+      return "not in order time";
     default:
       return "UNKNOWN error";
   }

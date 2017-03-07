@@ -61,6 +61,9 @@ UserLogic::UserLogic() {
 
   engine->Init();
   LOG_DEBUG2("user logic engine: %p", engine);
+#ifdef DEBUG_TEST
+  LOG_MSG("DEBUG_TEST");
+#endif
 }
 
 UserLogic::~UserLogic() {
@@ -598,7 +601,9 @@ void UserLogic::OnSubmitOrder(int socket, DictionaryValue& dict) {
   SubmitOrderReq msg;
   SubmitOrderRes res;
 
+  res.order_id = -1;
   // check order time
+#ifndef DEBUG_TEST
   StockUtil* util = StockUtil::Instance();
   if (util->is_trading_day()) {
     int h = util->hour();
@@ -610,7 +615,7 @@ void UserLogic::OnSubmitOrder(int socket, DictionaryValue& dict) {
       return ;
     }
   }
-
+#endif
   if (!msg.StartDeserialize(dict)) {
     res.status.state = Status::ERROR_MSG;
     SendResponse(socket, res);
@@ -622,7 +627,7 @@ void UserLogic::OnSubmitOrder(int socket, DictionaryValue& dict) {
   LOG_DEBUG2("%s", oss.str().data());
 
   UserInfo* user = engine->GetUser(msg.user_id);
-  res.status.state = user->SubmitOrder(msg);
+  res = user->SubmitOrder(msg);
 
   SendResponse(socket, res);
 }
@@ -763,7 +768,10 @@ void UserLogic::ProcessClose() {
     return ;
   }
 
+  LOG_MSG("process closing");
+#ifndef DEBUG_TEST
   engine->OnCloseMarket();
+#endif
 }
 
 } /* namespace strade_user */

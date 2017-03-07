@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include <sstream>
 
@@ -35,6 +36,9 @@ DataEngine::DataEngine()
       initialized_(false),
       current_(&data_[0]) {
   InitThreadrw(&lock_);
+#ifdef DEBUG_TEST
+  LOG_MSG("DEBUG_TEST FOR DataEngine");
+#endif
 }
 
 DataEngine::~DataEngine() {
@@ -239,7 +243,11 @@ bool DataEngine::Update() {
     }
     int t = atoi(new_times[i].c_str());
     time_t ts = util->to_timestamp(t);
+#ifdef DEBUG_TEST
+    Append(ts, data);
+#else
     engine->UpdateStockRealMarketData(ts, data);
+#endif
   }
   return true;
 }
@@ -266,6 +274,29 @@ void DataEngine::OnTime() {
     LOG_MSG2("new trade day: %d", today);
   }
   Update();
+}
+
+void DataEngine::Simulate() {
+  base_logic::WLockGd lock(lock_);
+  static time_t last = 1488504600;
+  CodeMap* code_map;
+  DataMap::iterator it = current_->data_map.begin();
+  for (; current_->data_map.end() != it; ++it) {
+    if(it->first > last) {
+      last = it->first;
+      code_map = &(it->second);
+      break;
+    }
+  }
+  if (current_->data_map.end() == it) {
+       return ;
+  }
+  CodeInfoArray data;
+  CodeMap::iterator iter(code_map->begin());
+  for(; iter != code_map->end(); ++iter) {
+    data.push_back(*(iter->second));
+  }
+  engine->UpdateStockRealMarketData(last, data);
 }
 
 } /* namespace stock_logic */

@@ -51,6 +51,7 @@ class StockLogic {
  private:
   void StartSHEngine();
   void StartSZEngine();
+  void Simulate();
  private:
   const static char* const hkey_prefix_[DataEngine::MAX_TYPE];
 

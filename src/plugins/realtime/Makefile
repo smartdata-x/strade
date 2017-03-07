@@ -23,7 +23,7 @@ LINK_PATHS = -L./ -L/usr/local/libmemcached-1.0.7/lib/ -L/usr/lib64/mysql -L$(CU
 
 # Flags passed to the preprocessor.
 CPPFLAGS += -isystem -shared -fPIC -D_DEBUG -DUSR_LOG_MSG -D_REENTRANT -D_GNU_SOURCE \
-			-DUSR_LOG_ERROR  -DPROCESS_WORK -DBRY_PTL -DHEAD_SHORT
+			-DUSR_LOG_ERROR  -DPROCESS_WORK -DBRY_PTL -DHEAD_SHORT -DDEBUG_TEST
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g  -Wextra -pthread -shared -fPIC

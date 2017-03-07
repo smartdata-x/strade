@@ -42,6 +42,7 @@ class DataEngine {
   };
 
  public:
+  void Simulate();
   void Init(Type type, const std::string& hkey_prefix,
             StockDB* db, RedisController* redis);
   DataEngine();

@@ -67,7 +67,7 @@ class UserInfo : public base_logic::AbstractDao {
   GroupStockPositionList GetHoldingStocks();
 
   OrderList FindOrders(const OrderFilterList& filters);
-  Status::State SubmitOrder(SubmitOrderReq& req);
+  SubmitOrderRes SubmitOrder(SubmitOrderReq& req);
   void OnOrderDone(OrderInfo* order);
   Status::State OnCancelOrder(OrderId order_id);
   Status::State OnModifyInitCapital(GroupId group_id, double capital);

@@ -96,6 +96,7 @@ bool GroupStockPosition::InitFakeStockPosition() {
       continue;
     }
     data_->count_ += sps[i].count();
+    data_->available_ += sps[i].count();
     data_->fake_stock_position_list_.push_back(sps[i]);
   }
   LOG_MSG2("user:%d group:%d init %d fake stock position",
@@ -110,7 +111,12 @@ double GroupStockPosition::cost() const {
     sum += data_->fake_stock_position_list_[i].order()->deal_price() *
         data_->fake_stock_position_list_[i].count();
   }
-  return sum / count;
+
+  double ret = 0.0;
+  if (count) {
+    ret = sum / count;
+  }
+  return ret;
 }
 
 double GroupStockPosition::total_cost() const {

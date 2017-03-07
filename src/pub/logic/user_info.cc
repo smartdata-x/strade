@@ -403,19 +403,23 @@ Status::State UserInfo::OnSellOrder(SubmitOrderReq& req) {
   return Status::SUCCESS;
 }
 
-Status::State UserInfo::SubmitOrder(SubmitOrderReq& req) {
+SubmitOrderRes UserInfo::SubmitOrder(SubmitOrderReq& req) {
   WlockThreadrw (data_->lock_);
 
 //  if (0 == req.group_id) {
 //    req.group_id = data_->default_gid_;
 //  }
 
+  SubmitOrderRes res;
+  res.order_id = -1;
+  res.status.state = Status::SUCCESS;
   StockGroup* g = GetGroupWithNonLock(req.group_id);
   if (NULL == g) {
     UnlockThreadrw(data_->lock_);
     LOG_ERROR2("user:%s submit order error: group_id:%d not exist",
                data_->name_.data(), req.group_id);
-    return Status::GROUP_NOT_EXIST;
+    res.status.state = Status::GROUP_NOT_EXIST;
+    return res;
   }
 
 //  if (!g->exist_stock(req.code)) {
@@ -428,7 +432,8 @@ Status::State UserInfo::SubmitOrder(SubmitOrderReq& req) {
   if (stock.empty()) {
     UnlockThreadrw(data_->lock_);
     LOG_ERROR2("stock:%s NOT EXIST", req.code.data());
-    return Status::STOCK_NOT_EXIST;
+    res.status.state = Status::STOCK_NOT_EXIST;
+    return res;
   }
 
   Status::State status;
@@ -443,7 +448,8 @@ Status::State UserInfo::SubmitOrder(SubmitOrderReq& req) {
 
   if (Status::SUCCESS != status) {
     UnlockThreadrw(data_->lock_);
-    return status;
+    res.status.state = status;
+    return res;
   }
   // insert into mysql
   // 1. insert delegation_record table
@@ -463,7 +469,8 @@ Status::State UserInfo::SubmitOrder(SubmitOrderReq& req) {
     UnlockThreadrw(data_->lock_);
     LOG_ERROR2("user:%s submit order error: mysql error",
                data_->name_.data());
-    return Status::MYSQL_ERROR;
+    res.status.state = Status::MYSQL_ERROR;
+    return res;
   }
   assert(!row.empty() && !row[0].empty());
   OrderId order_id = atoi(row[0][0].data());
@@ -475,17 +482,18 @@ Status::State UserInfo::SubmitOrder(SubmitOrderReq& req) {
   order->Init(req);
   order->set_frozen(frozen);
 
+  res.order_id = order_id;
   // check can make a deal
   if (order->can_deal(stock.rbegin()->second.price)) {
     UnlockThreadrw(data_->lock_);
     order->MakeADeal(stock.rbegin()->second.price);
-    return Status::SUCCESS;
+    return res;
   }
 
   // cannot make a deal now, register callback
   engine_->AttachObserver(order);
   UnlockThreadrw(data_->lock_);
-  return Status::SUCCESS;
+  return res;
 }
 
 bool UserInfo::OnBuyOrderDone(OrderInfo* order) {
@@ -552,7 +560,7 @@ bool UserInfo::OnBuyOrderDone(OrderInfo* order) {
   assert(!row.empty());
   OrderId order_id = atoi(row[0][0].data());
   LOG_MSG2("user:%s new order:%d, code:%s, count:%d",
-           data_->name_.data(), order_id, order->deal_num());
+           data_->name_.data(), order_id, order->code().data(), order->deal_num());
 
   data_->order_list_.push_back(new OrderInfo(data_->id_, order_id, OrderInfo::AUTO_ORDER));
   OrderInfo* new_order = data_->order_list_[data_->order_list_.size()-1];
@@ -616,6 +624,7 @@ bool UserInfo::OnSellOrderDone(OrderInfo* order) {
       << order->available_capital() << ","
       << "'" << h << "')";
 
+  LOG_MSG2("proc_SellOrderDone: %s", oss.str().data());
 //  SSEngine* engine = GetStradeShareEngine();
   if (!engine_->WriteData(oss.str())) {
     LOG_ERROR2("user:%s update sell order mysql error", data_->name_.data());
@@ -707,10 +716,16 @@ Status::State UserInfo::OnCancelOrder(OrderId order_id) {
       break;
     }
   }
+
   if (data_->order_list_.end() == order) {
     return Status::ORDER_NOT_EXIST;
   }
 
+  if ((*order)->status() != PENDING) {
+    return Status::FAILED;
+  }
+
+  LOG_DEBUG2("user:%s cancle order:%d", data_->name_.data(), (*order)->id());
   status = CancleOrder(*order);
 
   // remove order

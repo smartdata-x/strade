@@ -13,6 +13,8 @@
 #define SHARE_LIB_PATH          "./strade_share/strade_share.so"
 #define SHARE_LIB_HANDLER       "GetStradeShareEngine"
 
+#define TIMER_SIMULATE  (DataEngine::MAX_TYPE)
+
 namespace stock_logic {
 
 using strade_share::SSEngine;
@@ -105,6 +107,9 @@ bool StockLogic::OnBroadcastClose(struct server *srv, const int socket) {
 bool StockLogic::OnIniTimer(struct server *srv) {
   srv->add_time_task(srv, "stock", DataEngine::SH, 5, -1);
   srv->add_time_task(srv, "stock", DataEngine::SZ, 5, -1);
+#ifdef DEBUG_TEST
+  srv->add_time_task(srv, "stock", TIMER_SIMULATE, 30, -1);
+#endif
   return true;
 }
 
@@ -115,6 +120,9 @@ bool StockLogic::OnTimeout(struct server *srv, char *id, int opcode, int time) {
       break;
     case DataEngine::SZ:
       StartSZEngine();
+      break;
+    case TIMER_SIMULATE:
+      Simulate();
       break;
     default:
       break;
@@ -130,4 +138,8 @@ void StockLogic::StartSZEngine() {
   data_[DataEngine::SZ].OnTime();
 }
 
+void StockLogic::Simulate() {
+  data_[DataEngine::SH].Simulate();
+  data_[DataEngine::SZ].Simulate();
+}
 } /* namespace stock_logic */

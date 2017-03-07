@@ -43,11 +43,12 @@ std::string OrderInfo::GetUserOrderSql(UserId user_id) {
   std::ostringstream oss;
   oss << "SELECT `id`, `userId`, `groupId`, `stock`, `price`, "
       << "`lossOrProfitPrice`, `tradeType`, `status`, `count`, "
-      << "`needFunds`, `tradeTime`, `tradePrice`, `tradeCount`, "
+      << "`needFunds`, UNIX_TIMESTAMP(`tradeTime`), `tradePrice`, `tradeCount`, "
       << "`stampDuty`, `commission`, `transferFee`, `type`, "
       << "`amount`, `profit`, `availableCapital` "
       << "FROM `delegation_record`"
       << "WHERE "
+      << "status != " << CANCEL << " AND "
       << "`userId` = " << user_id;
   return oss.str();
 }
@@ -138,14 +139,18 @@ void OrderInfo::Update(int opcode) {
 
 bool OrderInfo::MakeADeal(double price) {
   // check trading time
+#ifndef DEBUG_TEST
   StockUtil* util = StockUtil::Instance();
   if (!util->is_trading_time()) {
     return false;
   }
-
+#endif
   if (!can_deal(price)) {
     return false;
   }
+
+  // now can remove from observer list
+  stale_ = true;
 
   data_->status_ = FINISHED;
   data_->deal_time_ = time(NULL);
@@ -181,10 +186,12 @@ bool OrderInfo::MakeADeal(double price) {
 
 void OrderInfo::OnStockUpdate() {
   // check trading time
+#ifndef DEBUG_TEST
   StockUtil* util = StockUtil::Instance();
   if (!util->is_trading_time()) {
     return ;
   }
+#endif
 
   if (FINISHED == data_->op_) {
     LOG_ERROR2("fatal error: finished order, user_id:%d, group_id:%d, "
@@ -197,7 +204,7 @@ void OrderInfo::OnStockUpdate() {
   SSEngine* engine = GetStradeShareEngine();
   STOCKS_MAP stocks = engine->GetAllStockTotalMapCopy();
   STOCKS_MAP::iterator it = stocks.find(data_->code_);
-  if (stocks.end() != it) {
+  if (stocks.end() == it) {
     LOG_ERROR2("stock:%s NOT EXIST", data_->code_.data());
     return ;
   }
@@ -216,9 +223,6 @@ void OrderInfo::OnStockUpdate() {
   if (stock.rend() == deal_it) {
     return ;
   }
-
-  // now can remove from observer list
-  stale_ = true;
 
   // can make a deal
   MakeADeal(deal_it->second.price);
