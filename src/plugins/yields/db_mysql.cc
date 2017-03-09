@@ -114,8 +114,12 @@ bool DbMysql::RequestYieldsHistory(const uint32 user_id, \
     ss_tmp >> tmp_int;
     yields_history_info_pt->set_group_id(tmp_int);
 
-    //date
+    //group_name
     tmp_str = rows_vec[i][1];
+    yields_history_info_pt->set_group_name(tmp_str);
+
+    //date
+    tmp_str = rows_vec[i][2];
     yields_history_info_pt->set_date(tmp_str);
 
     //yields

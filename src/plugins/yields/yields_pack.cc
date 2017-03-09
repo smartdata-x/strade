@@ -58,6 +58,7 @@ void SendYieldsPack::YieldsHistoryToSendPack(std::vector<YieldsHistoryInfo*> *ve
 
     YieldsHistoryInfo *yields_history_info_pt = *it;
     nb_pt->SetBigInteger("group_id", yields_history_info_pt->get_group_id());
+    nb_pt->SetString("group_name", yields_history_info_pt->get_group_name());
     nb_pt->SetString("date", yields_history_info_pt->get_date());
     nb_pt->SetReal("yields", yields_history_info_pt->get_yields());
 
