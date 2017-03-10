@@ -72,6 +72,7 @@ int RealInfoCache::GetRealInfoLatestCache(std::string stock_code, std::string *v
   }
   return -1;
 }
+
 int RealInfoCache::GetRealInfoTodayCache(std::string stock_code, std::string *value) {
   int rc = 0;
   base_dic::KunDicPool *pool = base_dic::KunDicPool::GetInstance();
