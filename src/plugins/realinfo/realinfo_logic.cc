@@ -19,22 +19,24 @@
 #define DEFAULT_CONFIG_PATH                    "./plugins/realinfo/realinfo_config.xml"
 #define TIME_REALINFO_UPDATE_ALL                          10000
 #define SEND_HTTP_ERROR(b) \  
-  do {\
+do {\
   std::string response = b;\
   base_logic::LogicUnit::SendMessageBySize(socket, response);\
-  }while(0)
+}while(0)
+
 #define SEND_ERROR_INFO(c, i) \  
-  do {\
+do {\
   SendRealInfoLatestProtocol error_pro;\
   error_pro.SetErrorState(c, i);\
   std::string response = error_pro.GetJson();\
   base_logic::LogicUnit::SendMessageBySize(socket, response);\
-  }while(0)
+}while(0)
+
 #define SEND_HTTP_INFO(b) \  
-  do {\
+do {\
   std::string response = b;\
   base_logic::LogicUnit::SendMessageBySize(socket, response);\
-  }while(0)
+}while(0)
 
 namespace realinfo {
 
@@ -52,13 +54,6 @@ bool RealInfoLogic::Init() {
   bool r = false;
   srand(time(NULL));
   engine_ = GetStradeShareEngine();
-  std::string path = DEFAULT_CONFIG_PATH;
-  config::FileConfig* config = config::FileConfig::GetFileConfig();
-  if (config == NULL) {
-    return false;
-  }
-  r = config->LoadConfig(path);
-  // assert(base_dic::KunDicPool::GetInstance()->Init(config->redis_list_, 100));
   return true;
 }
 
@@ -73,15 +68,12 @@ void RealInfoLogic::FreeInstance() {
   instance_ = NULL;
 }
 
-bool RealInfoLogic::OnRealInfoConnect(struct server *srv,
-                                            const int socket) {
+bool RealInfoLogic::OnRealInfoConnect(struct server *srv, const int socket) {
   return true;
 }
 
-bool RealInfoLogic::OnRealInfoMessage(struct server *srv,
-                                            const int socket, const void *msg,
-                                            const int len) {
-  LOG_MSG2("Recv message %s\n", "hello, word");
+bool RealInfoLogic::OnRealInfoMessage(struct server *srv, const int socket,
+                                      const void *msg, const int len) {
   bool r = true;
   do {
     const char* packet = reinterpret_cast<const char*>(msg);
@@ -93,14 +85,13 @@ bool RealInfoLogic::OnRealInfoMessage(struct server *srv,
     std::string error_str;
     int error_code = 0;
     scoped_ptr <base_logic::ValueSerializer> serializer(
-            base_logic::ValueSerializer::Create(base_logic::IMPL_HTTP,
-                                                &http_str));
+        base_logic::ValueSerializer::Create(base_logic::IMPL_HTTP,
+                                            &http_str));
     NetBase* value = (NetBase*) (serializer.get()->Deserialize(&error_code,
                                                                &error_str));
     LOG_DEBUG2("http_str:%s", http_str.c_str());
     if (NULL == value) {
       error_code = STRUCT_ERROR;
-      // send_error(error_code, socket);
       LOG_MSG("error struct ");
       SEND_ERROR_INFO(STRUCT_ERROR, "error struct");
       r = true;
@@ -123,7 +114,6 @@ bool RealInfoLogic::OnRealInfoMessage(struct server *srv,
       }
       default: {
         r = false;
-        SEND_ERROR_INFO(-1, "unkown type");
         break;
       }
     }
@@ -131,8 +121,7 @@ bool RealInfoLogic::OnRealInfoMessage(struct server *srv,
   return r;
 }
 
-bool RealInfoLogic::OnRealInfoClose(struct server *srv,
-                                          const int socket) {
+bool RealInfoLogic::OnRealInfoClose(struct server *srv, const int socket) {
   return true;
 }
 
@@ -151,38 +140,12 @@ bool RealInfoLogic::OnBroadcastClose(struct server *srv, const int socket) {
 }
 
 bool RealInfoLogic::OnIniTimer(struct server *srv) {
-  if (srv->add_time_task != NULL) {
-    srv->add_time_task(srv, "realinfo", TIME_REALINFO_UPDATE_ALL, 600,
-                       -1);
-  }
   return true;
 }
 
 bool RealInfoLogic::OnTimeout(struct server *srv, char *id, int opcode,
-                                 int time) {
-  if (opcode == TIME_REALINFO_UPDATE_ALL) {
-    LOG_MSG("Update realinfo");
-  }
+                              int time) {
   return true;
-}
-
-//bool RealInfoLogic::GetStockData(
-//    const strade_share::STOCK_HIST_MAP &share_map,
-//    STOCK_HISTORY_MAP *history_map) {
-//  return true;
-//}
-
-static StockDealNInfo get_test_data() {
-  
-  StockDealNInfo info;
-  for (int i = 0; i < 5; i++) {
-    StockDealInfo a = {1.0 + i, 200 * (i + 1)}; 
-    StockDealInfo b = {1.0 + 2*i, 400 * (i + 1)}; 
-    info.buy.push_back(a);
-    info.sell.push_back(b);
-  }
-  return info;
-  
 }
 
 
@@ -201,33 +164,11 @@ bool RealInfoLogic::InitRealInfo(const strade_logic::StockRealInfo &share_info, 
   info->limit_down = share_info.lower;
   info->limit_up = share_info.upper;
   info->change_price = info->now_price - info->yesterday_close_price;
-  info->change_rate = (info->now_price - info->yesterday_close_price) / info->yesterday_close_price;
+  info->change_rate = (info->now_price - info->yesterday_close_price) / (info->yesterday_close_price + 0.000001);
   info->turnover_rate = 0;
   info->name = share_info.name;
   return true; 
 }
- 
-static StockRealInfo get_test_real_data() {
-  
-  StockRealInfo info;
-  info.open_price = 3.0;
-  info.yesterday_close_price = 2.5;
-  info.now_price = 3.1;
-  info.low_price = 1.0;
-  info.high_price = 5.0;
-  info.limit_down = info.open_price * 0.9;
-  info.limit_up = info.open_price * 1.1;
-  info.amount = 4455;
-  info.turnover_rate = 0.84;
-  return info;
-}
-
-bool RealInfoLogic::GetRealInfo(const strade_logic::StockRealInfo &info,
-                                StockRealInfo *real_info,
-                                StockDealNInfo *deal_info) {
-
-  return true;
-}  
 
 std::string RealInfoLogic::GetStradeDay(time_t stamp) {
   time_t seconds = stamp;
@@ -339,7 +280,6 @@ bool RealInfoLogic::OnSingleStockLatestRecords(struct server *srv,
     return true;
   }
   
-  LOG_MSG2("%s %d", __FILE__, __LINE__);
   SendRealInfoLatestProtocol candle_pro;
   StockDealNInfo info;
   strade_logic::StockRealInfo stock_real_info;
@@ -361,24 +301,7 @@ bool RealInfoLogic::OnSingleStockLatestRecords(struct server *srv,
 
   double outstand = total_info.get_outstanding();
   LOG_MSG2("The outstanding %f", outstand);
-  real_info.turnover_rate =  real_info.vol*100/100000000/outstand;
-  // get last close
-  strade_logic::STOCK_HIST_MAP  hist_map = engine_->GetStockHistMapByCodeCopy(stock_code); 
-  if (hist_map.size() == 0) {
-    LOG_MSG2("get his info error %s", stock_code.c_str()); 
-    SEND_ERROR_INFO(NULL_DATA, "get his info error");
-    return false;
-  } else if (hist_map.size() == 1) {
-    SEND_ERROR_INFO(NULL_DATA, "only one day data!");
-    return false;
-  } else {
-    strade_logic::STOCK_HIST_MAP::iterator mit = hist_map.end();
-    mit--;
-    mit--;
-    strade_logic::StockHistInfo &his_info = mit->second;
-    real_info.yesterday_close_price =  his_info.close();
-  }
-  
+  real_info.turnover_rate =  real_info.vol*100/100000000/(outstand + 0.000000001);
   candle_pro.set_latest_info(info, real_info);
   std::string json = candle_pro.GetJson();
   LOG_MSG2("The json %s\n", json.c_str());
@@ -412,12 +335,14 @@ bool RealInfoLogic::OnSingleStockTodayRecords(struct server *srv,
   
   LOG_MSG2("%s %d", __FILE__, __LINE__);
   SendRealInfoLatestProtocol candle_pro;
-  strade_share::STOCK_REAL_MAP today_info = engine_->GetStockRealInfoMapCopy(                             stock_code);
+  strade_share::STOCK_REAL_MAP today_info = engine_->GetStockRealInfoMapCopy(stock_code);
   std::list<StockRealInfo> real_list;
   strade_share::STOCK_REAL_MAP::iterator it = today_info.begin();
   while (it != today_info.end()) {
+    strade_share::STOCK_REAL_MAP::iterator former = it;
     const strade_logic::StockRealInfo &stock_real_info = it->second;
     StockRealInfo real_info;
+    LOG_MSG2("The ts %d\n", it->first);
     InitRealInfo(stock_real_info, &real_info);
     real_info.ts = it->first;
     real_info.time = RealInfoToday::BuildDate(real_info.ts);
@@ -425,6 +350,7 @@ bool RealInfoLogic::OnSingleStockTodayRecords(struct server *srv,
     it++;
   }
   RealInfoToday::RemoveDuplicate(&real_list);
+  RealInfoToday::CalculateVol(&real_list);
   candle_pro.SetTodayRealInfo(real_list);
   std::string json = candle_pro.GetJson();
   LOG_MSG2("The json %s\n", json.c_str());
