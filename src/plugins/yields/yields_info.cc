@@ -43,6 +43,7 @@ bool GroupAccountInfo::fetch_group_account_info(strade_share::SSEngine* ss_engin
     return false;
   }
 
+  gid_ = group_id;
   usable_assets_ = stock_group_ptr->available_capital();
 
   //stock_value
