@@ -212,8 +212,9 @@ bool YieldsLogic::OnUpdateYields() {
       std::stringstream sql;
       uint32 user_id = it_1->first;
       uint32 group_id = it_2->id();
+      std::string group_name = it_2->name();
       sql << "call proc_UpdateYields(" << user_id << "," << group_id  \
-          << ",'" << date << "'," << today_yields << ")";
+          << ",'" << group_name << "','"<< date << "'," << today_yields << ")";
 
       bool r = ss_engine_->WriteData(sql.str());
       if (!r) {
