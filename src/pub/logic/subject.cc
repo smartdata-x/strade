@@ -18,6 +18,7 @@ Subject::~Subject() {
 
 void Subject::Attach(Observer* observer) {
   this->m_lst.push_back(observer);
+  LOG_MSG2("new observe attach, curr total observe size:%d", m_lst.size());
 }
 
 void Subject::Detach(Observer* observer) {
@@ -28,14 +29,19 @@ void Subject::Detach(Observer* observer) {
   }
 }
 
-void Subject::Notify(int opcode) {
-  std::list<Observer*>::iterator iter = this->m_lst.begin();
+void Subject::Notify(int opcode, void* param) {
+  typedef std::list<Observer*>::iterator ITER_TYPE;
+  ITER_TYPE iter = this->m_lst.begin();
   for (; iter != m_lst.end(); ) {
-    if ((*iter)->stale()) {
-      m_lst.erase(iter++);
+    ITER_TYPE iter_tmp(iter);
+    ++iter;
+
+    if ((*iter_tmp)->stale()) {
+      m_lst.erase(iter_tmp);
+      LOG_DEBUG("order observer detach");
       continue;
     }
-    (*iter++)->Update(opcode);
+    (*iter_tmp)->Update(opcode, param);
   }
 }
 

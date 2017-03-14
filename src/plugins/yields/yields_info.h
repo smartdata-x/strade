@@ -57,15 +57,18 @@ class YieldsHistoryInfo {
   ~YieldsHistoryInfo() {}
 
   uint32 get_group_id() {return gid_;}
+  std::string get_group_name() {return gname_;}
   std::string get_date() {return date_;}
   double get_yields() {return yields_;}
 
   void set_group_id(uint32 group_id) {gid_ = group_id;}
+  void set_group_name(std::string group_name) {gname_ = group_name;}
   void set_date(std::string date) {date_ = date;}
   void set_yields(double yields) {yields_ = yields;}
 
  private:
   uint32 gid_;
+  std::string gname_;
   std::string date_;
   double yields_;
 };

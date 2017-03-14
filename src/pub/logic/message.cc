@@ -10,9 +10,6 @@
 #include "logic/logic_comm.h"
 #include "basic/basic_util.h"
 
-#define OSS_WRITE(x)        \
-  oss << "\t\t" << #x << " = " << x << std::endl
-
 namespace strade_user {
 
 bool ReqHead::StartDeserialize(DictionaryValue& dict) {
@@ -224,6 +221,7 @@ bool QueryStocksRes::StockInfo::Serialize(DictionaryValue& dict) {
   dict.SetReal(L"change", change);
   dict.SetBigInteger(L"volume", volume);
   dict.SetString(L"industry", industry);
+  dict.SetInteger(L"holding_num", holding_num);
   return true;
 }
 
@@ -234,6 +232,7 @@ bool QueryStocksRes::Serialize(DictionaryValue& dict) {
     stock_list[i].Serialize(*unit);
     unit_list->Append(unit);
   }
+  dict.SetReal(L"available_capital", available_capital);
   dict.Set(L"stock_list", unit_list);
   return true;
 }
@@ -294,6 +293,8 @@ void QueryTodayOrdersReq::Dump(std::ostringstream& oss) {
 }
 
 bool QueryTodayOrdersRes::OrderInfo::Serialize(DictionaryValue& dict) {
+  dict.SetBigInteger(L"group_id", group_id);
+  dict.SetString(L"group_name", group_name);
   dict.SetBigInteger(L"id", id);
   dict.SetString(L"code", code);
   dict.SetString(L"name", name);
@@ -463,7 +464,7 @@ bool SubmitOrderReq::Deserialize(DictionaryValue& dict) {
     LOG_ERROR("NOT FIND code");
     return false;
   }
-  code.erase(code.size()-1);
+  code.erase(code.size() - 1);
 
   if (!dict.GetReal(L"order_price", &order_price)) {
     LOG_ERROR("NOT FIND order_price");
@@ -485,7 +486,7 @@ bool SubmitOrderReq::Deserialize(DictionaryValue& dict) {
     LOG_ERROR("NOT FIND order_operation");
     return false;
   }
-  op = (OrderOperation)t;
+  op = (OrderOperation) t;
   return true;
 }
 
@@ -496,7 +497,88 @@ void SubmitOrderReq::Dump(std::ostringstream& oss) {
   OSS_WRITE(order_price);
   OSS_WRITE(expected_price);
   OSS_WRITE(order_nums);
-  OSS_WRITE((int)op);
+  OSS_WRITE((int) op);
+}
+
+bool SubmitMultiOrderReq::Deserialize(DictionaryValue& dict) {
+  int64 t;
+  if (!dict.GetBigInteger(L"group_id", &t)) {
+    LOG_ERROR("NOT FIND group_id");
+    return false;
+  }
+  group_id = t;
+
+  // parse stock list
+  if (!dict.GetString(L"code", &code_strs)) {
+    LOG_ERROR("NOT FIND code");
+    return false;
+  }
+  std::string stock_code;
+  std::istringstream iss(code_strs);
+  while (std::getline(iss, stock_code, ',')) {
+    if (!stock_code.empty()) {
+      code_list.push_back(stock_code);
+    }
+  }
+
+  // parse price list
+  if (!dict.GetString(L"order_price", &price_strs)) {
+    LOG_ERROR("NOT FIND order_price");
+    return false;
+  }
+  std::string order_price;
+  iss.str(price_strs);
+  while (std::getline(iss, order_price, ',')) {
+    if (!order_price.empty()) {
+      price_list.push_back(atof(order_price.data()));
+    }
+  }
+
+  // assert stock_list.size() == price_list.size();
+  if (code_list.size() != price_list.size()) {
+    LOG_ERROR("multi order req, code_list.size() != price_list.size()");
+    return false;
+  }
+  size_t total_order_num = code_list.size();
+
+  if (!dict.GetReal(L"expected_price", &expected_price)) {
+    LOG_ERROR("NOT FIND expected_price");
+    return false;
+  }
+
+  if (!dict.GetBigInteger(L"order_nums", &t)) {
+    LOG_ERROR("NOT FIND order_nums");
+    return false;
+  }
+  order_nums = t;
+
+  if (!dict.GetBigInteger(L"order_operation", &t)) {
+    LOG_ERROR("NOT FIND order_operation");
+    return false;
+  }
+  op = (OrderOperation) t;
+
+  // construct single order
+  for (size_t i = 0; i < total_order_num; ++i) {
+    SubmitOrderReq req;
+
+
+
+
+
+  }
+
+  return true;
+}
+
+void SubmitMultiOrderReq::Dump(std::ostringstream& oss) {
+  oss << "\t\t--------- SubmitMultiOrderReq ---------" << std::endl;
+  OSS_WRITE(group_id);
+  OSS_WRITE(code_strs);
+  OSS_WRITE(price_strs);
+  OSS_WRITE(expected_price);
+  OSS_WRITE(order_nums);
+  OSS_WRITE((int) op);
 }
 
 bool SubmitOrderRes::Serialize(DictionaryValue& dict) {
@@ -553,7 +635,7 @@ bool AvailableStockCountReq::Deserialize(DictionaryValue& dict) {
   }
 
   // erase last ','
-  code.erase(code.size()-1);
+  code.erase(code.size() - 1);
   return true;
 }
 
@@ -567,6 +649,7 @@ bool AvailableStockCountRes::Serialize(DictionaryValue& dict) {
   dict.SetString(L"code", code);
   dict.SetString(L"name", name);
   dict.SetBigInteger(L"count", count);
+  dict.SetReal(L"available_capital", available_capital);
   return true;
 }
 ///////////////////////////////////////////////////////////////////////////////
@@ -638,38 +721,22 @@ bool ModifyInitCapitalRes::Serialize(DictionaryValue& dict) {
 
 std::string Status::to_string() {
   switch (state) {
-    case SUCCESS:
-      return "success";
-    case FAILED:
-      return "failed";
-    case ERROR_MSG:
-      return "error msg";
-    case UNKNOWN_OPCODE:
-      return "UNKNOWN opcode";
-    case USER_NOT_EXIST:
-      return "user not exist";
-    case INVALID_TOKEN:
-      return "invalid token";
-    case GROUP_NAME_ALREADAY_EXIST:
-      return "group name already exist";
-    case MYSQL_ERROR:
-      return "mysql error";
-    case GROUP_NOT_EXIST:
-      return "group not exist";
-    case STOCK_NOT_IN_GROUP:
-      return "stock not in group";
-    case STOCK_NOT_EXIST:
-      return "stock not exit";
-    case CAPITAL_NOT_ENOUGH:
-      return "capital not enough";
-    case NO_HOLDING_STOCK:
-      return "no holding stock";
-    case ORDER_NOT_EXIST:
-      return "order not exist";
-    case NOT_IN_ORDER_TIME:
-      return "not in order time";
-    default:
-      return "UNKNOWN error";
+    case SUCCESS:return "success";
+    case FAILED:return "failed";
+    case ERROR_MSG:return "error msg";
+    case UNKNOWN_OPCODE:return "UNKNOWN opcode";
+    case USER_NOT_EXIST:return "user not exist";
+    case INVALID_TOKEN:return "invalid token";
+    case GROUP_NAME_ALREADAY_EXIST:return "group name already exist";
+    case MYSQL_ERROR:return "mysql error";
+    case GROUP_NOT_EXIST:return "group not exist";
+    case STOCK_NOT_IN_GROUP:return "stock not in group";
+    case STOCK_NOT_EXIST:return "stock not exit";
+    case CAPITAL_NOT_ENOUGH:return "capital not enough";
+    case NO_HOLDING_STOCK:return "no holding stock";
+    case ORDER_NOT_EXIST:return "order not exist";
+    case NOT_IN_ORDER_TIME:return "not in order time";
+    default:return "UNKNOWN error";
   }
 }
 

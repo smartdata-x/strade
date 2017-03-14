@@ -22,8 +22,11 @@ CUSTOM_THIRD_PATH = $(LIB_DIR)/third_party
 LINK_PATHS = -L./ -L/usr/local/libmemcached-1.0.7/lib/ -L/usr/lib64/mysql -L$(CUSTOM_THIRD_PATH)/librdkafka -L$(CUSTOM_THIRD_PATH)/hiredis
 
 # Flags passed to the preprocessor.
+#CPPFLAGS += -isystem -shared -fPIC -D_DEBUG -DUSR_LOG_MSG -D_REENTRANT -D_GNU_SOURCE \
+			-DUSR_LOG_ERROR -DUSER_LOG_DEBUG -DNET_WORK -DBRY_PTL -DHEAD_SHORT -DDEBUG_TEST
+
 CPPFLAGS += -isystem -shared -fPIC -D_DEBUG -DUSR_LOG_MSG -D_REENTRANT -D_GNU_SOURCE \
-			-DUSR_LOG_ERROR  -DNET_WORK -DBRY_PTL -DHEAD_SHORT -DDEBUG_TEST
+			-DUSR_LOG_ERROR -DNET_WORK -DBRY_PTL -DHEAD_SHORT
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g  -Wextra -pthread -shared -fPIC
@@ -127,5 +130,5 @@ $(PLUGIN) : user_init.o user_logic.o message.o	logic_unit.o stock_group.o\
 			user_engine.o stock_util.o order_filter.o user_info.o abstract_dao.o\
 			strade_basic_info.o order_info.o observer.o stock_position.o\
 			$(LIB_DIR)/base/lib/mybase.a 
-			$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LINK_PATHS) -lexpat -lrt -lpthread -liconv -ldl -lcurl -lsasl2 -lmysqlclient -lmemcached -lmemcachedutil  \
+			$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LINK_PATHS) -lexpat -lrt -lpthread -ldl -lcurl -lmysqlclient  \
 	$^ -o $@

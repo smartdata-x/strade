@@ -44,7 +44,6 @@ static handler_t OnYieldsConnect(struct server *srv, int fd, void *data, int len
 }
 
 static handler_t OnYieldsMessage(struct server *srv, int fd, void *data, int len) {
-  LOG_DEBUG2("OnYieldsMessage：%d", 123);
   bool r = yields::YieldsLogic::GetInstance()->OnYieldsMessage(srv,  fd,  data, len);
   if (true == r) {
     return HANDLER_FINISHED;

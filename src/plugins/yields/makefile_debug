@@ -174,12 +174,13 @@ abstract_dao.o : $(USER_DIR)/dao/abstract_dao.cc $(USER_DIR)/dao/abstract_dao.h
 native_library.o : $(THIRD_PATH)/basic/native_library.cc $(THIRD_PATH)/basic/native_library.h
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(THIRD_PATH)/basic/native_library.cc $(INCLUDE_PATHS)
 
-
+message.o : ./$(USER_DIR)/logic/message.cc ./$(USER_DIR)/logic/message.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(USER_DIR)/logic/message.cc $(INCLUDE_PATHS)
 
 $(PLUGIN) : yields_init.o yields_logic.o yields_info.o yields_pack.o db_mysql.o native_library.o \
 	http_packet.o mig_log.o basictypes.o error_comm.o logic_user_account_info.o base_db_mysql_auto.o \
 	logic_unit.o basic_util.o config.o logic_yields_history_info.o abstract_dao.o stock_util.o observer.o\
-	http_data.o strade_basic_info.o user_info.o stock_position.o stock_group.o order_info.o user_engine.o\
-	$(CUSTOM_THIRD_PATH)/dmg_fp/lib/dmg_fp.a $(LIB_DIR)/base/lib/mybase.a $(LIB_DIR)/third_party/hiredis/libhiredis.a
+	http_data.o strade_basic_info.o user_info.o stock_position.o stock_group.o order_info.o user_engine.o message.o\
+	$(CUSTOM_THIRD_PATH)/dmg_fp/lib/dmg_fp.a $(LIB_DIR)/base/lib/mybase.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LINK_PATHS) -lpthread -lexpat -lrt -lpthread -ldl -liconv -lmysqlclient -lcurl \
 	$^ -o $@

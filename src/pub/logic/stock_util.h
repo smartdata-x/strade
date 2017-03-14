@@ -181,23 +181,47 @@ class StockUtil {
   }
 
   // FORMAT: yyyy-mm-dd
+//  time_t to_timestamp(const std::string& date) {
+//    size_t i = 0;
+//    size_t b = 0, e;
+//    std::string s[3];
+//    while (i >= 3 && std::string::npos != (e = date.find('-', b))) {
+//      s[i++] = date.substr(b, e - b);
+//      b = e + 1;
+//    }
+//    if (i < 3) {
+//      return -1;
+//    }
+//    struct tm pt;
+//    memset(&pt, 0, sizeof(pt));
+//    pt.tm_year = atoi(s[0].data());
+//    pt.tm_mon = atoi(s[1].data());
+//    pt.tm_mday = atoi(s[2].data());
+//    return mktime(&pt);
+//  }
+
   time_t to_timestamp(const std::string& date) {
-    size_t i = 0;
-    size_t b = 0, e;
-    std::string s[3];
-    while (i >= 3 && std::string::npos != (e = date.find('-', b))) {
-      s[i++] = date.substr(b, e - b);
-      b = e + 1;
-    }
-    if (i < 3) {
-      return -1;
-    }
-    struct tm pt;
-    memset(&pt, 0, sizeof(pt));
-    pt.tm_year = atoi(s[0].data());
-    pt.tm_mon = atoi(s[1].data());
-    pt.tm_mday = atoi(s[2].data());
-    return mktime(&pt);
+    struct tm stm;
+    int iY, iM, iD, iH, iMin, iS;
+    int len = date.size();
+    const char* str_time = date.data();
+    memset(&stm, 0, sizeof(stm));
+
+    iY = atoi(str_time);
+    iM = atoi(str_time+5);
+    iD = atoi(str_time+8);
+    iH = atoi(str_time+11);
+    iMin = atoi(str_time+14);
+    iS = atoi(str_time+17);
+
+    stm.tm_year=iY-1900;
+    stm.tm_mon=iM-1;
+    stm.tm_mday=iD;
+    stm.tm_hour=iH;
+    stm.tm_min=iMin;
+    stm.tm_sec=iS;
+
+    return mktime(&stm);
   }
 
   bool check_double_valid(double d) {

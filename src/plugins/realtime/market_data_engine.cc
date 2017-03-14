@@ -278,15 +278,19 @@ void DataEngine::OnTime() {
 
 void DataEngine::Simulate() {
   base_logic::WLockGd lock(lock_);
-  static time_t last = 1488504600;
+  static time_t last;
+  int i = 0;
   CodeMap* code_map;
   DataMap::iterator it = current_->data_map.begin();
   for (; current_->data_map.end() != it; ++it) {
-    if(it->first > last) {
-      last = it->first;
-      code_map = &(it->second);
-      break;
+    if(++i < 20) {
+      continue;
     }
+
+    last = it->first;
+    code_map = &(it->second);
+
+    break;
   }
   if (current_->data_map.end() == it) {
        return ;

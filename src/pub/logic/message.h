@@ -11,11 +11,14 @@
 #include "basic/basictypes.h"
 #include "user_defined_types.h"
 
+#define OSS_WRITE(x)        \
+  oss << "\t\t" << #x << " = " << x << std::endl
+
 namespace base_logic {
 class Value;
 class ListValue;
 class DictionaryValue;
-}
+} /* namespace base_logic */
 
 using base_logic::Value;
 using base_logic::ListValue;
@@ -62,16 +65,16 @@ struct Status {
     NOT_IN_ORDER_TIME
   };
 
-  Status() : state(SUCCESS) { }
+  Status() : state(SUCCESS) {}
   Status(State s)
-      : state(s) { }
+      : state(s) {}
   State state;
   std::string to_string();
   bool Serialize(DictionaryValue& dict);
 };
 
 struct ResHead {
-  virtual ~ResHead() { }
+  virtual ~ResHead() {}
   Status status;
   bool StartSerialize(DictionaryValue& dict);
   virtual bool Serialize(DictionaryValue& dict);
@@ -153,11 +156,12 @@ struct QueryStocksRes : ResHead {
     double change;
     uint64 volume;          // 单位手
     std::string industry;   // 行业
+    uint32 holding_num;
     bool Serialize(DictionaryValue& dict);
   };
   typedef std::vector<StockInfo> StockList;
-
   StockList stock_list;
+  double available_capital;   // 组合可用资金
 
   bool Serialize(DictionaryValue& dict);
 };
@@ -202,6 +206,8 @@ struct QueryTodayOrdersReq : ReqHead {
 
 struct QueryTodayOrdersRes : ResHead {
   struct OrderInfo {
+    GroupId group_id;
+    std::string group_name;
     uint32 id;
     std::string code;
     std::string name;
@@ -313,6 +319,29 @@ struct SubmitOrderReq : ReqHead {
   uint32 order_nums;
   OrderOperation op;
 
+  std::vector<std::string> code_list;
+  std::vector<double> price_list;
+
+  bool Deserialize(DictionaryValue& dict);
+  void Dump(std::ostringstream& oss);
+};
+
+struct SubmitMultiOrderReq : ReqHead {
+  const static uint32 ID = 111;
+
+  std::string code_strs;
+  std::string price_strs;
+
+  GroupId group_id;
+  double expected_price;    // 止损或止盈价格
+  uint32 order_nums;
+  OrderOperation op;
+
+  std::vector<std::string> code_list;
+  std::vector<double> price_list;
+
+  std::vector<SubmitOrderReq> single_order_vec;
+
   bool Deserialize(DictionaryValue& dict);
   void Dump(std::ostringstream& oss);
 };
@@ -360,6 +389,7 @@ struct AvailableStockCountRes : ResHead {
   std::string code;
   std::string name;
   uint32 count;
+  double available_capital;
   bool Serialize(DictionaryValue& dict);
 };
 
@@ -402,6 +432,6 @@ struct ModifyInitCapitalRes : ResHead {
   bool Serialize(DictionaryValue& dict);
 };
 
-}
+} /* namespace strade_user */
 
 #endif /* SRC_PUB_LOGIC_USER_MESSAGE_H_ */

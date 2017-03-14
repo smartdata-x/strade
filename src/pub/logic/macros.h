@@ -39,7 +39,7 @@
 #define TRANSFER_FEE(num) ((int(num)+999)/1000)
 
 // 佣金
-#define COMMISSION_RATE  0.003
+#define COMMISSION_RATE  0.001
 #define ROUND_COMMISSION(commision) ((((int)((double)(commision) + 4.999))/5)*5)
 
 // 印花税

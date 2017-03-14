@@ -12,6 +12,7 @@
 #include "macros.h"
 #include "user_defined_types.h"
 #include "dao/abstract_dao.h"
+#include "logic/logic_comm.h"
 
 namespace strade_share {
 class SSEngine;
@@ -60,8 +61,14 @@ class StockGroup : public base_logic::AbstractDao {
     data_->frozen_capital_ -= frozen;
   }
   void OnBuyOrderDone(double frozen, double amount) {
+    LOG_MSG2("pre order down, available_capital:%.2f",
+             data_->available_capital_);
     data_->frozen_capital_ -= frozen;
-    data_->available_capital_ += frozen - amount;
+    data_->available_capital_ = data_->available_capital_ + frozen - amount;
+
+    LOG_MSG2("after order down, available_capital:%.2f",
+             data_->available_capital_);
+//    data_->available_capital_ += frozen - amount;
   }
 
   void OnSellOrderDone(double amount) {

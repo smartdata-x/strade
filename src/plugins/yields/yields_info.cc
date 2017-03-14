@@ -43,6 +43,7 @@ bool GroupAccountInfo::fetch_group_account_info(strade_share::SSEngine* ss_engin
     return false;
   }
 
+  gid_ = group_id;
   usable_assets_ = stock_group_ptr->available_capital();
 
   //stock_value
@@ -56,7 +57,7 @@ bool GroupAccountInfo::fetch_group_account_info(strade_share::SSEngine* ss_engin
     int stock_num = it->count();
     strade_logic::StockRealInfo stock_real_info;
     ss_engine->GetStockCurrRealMarketInfo(stock_code, stock_real_info);
-	double stock_bought_price = it->cost();
+    double stock_bought_price = it->cost();
     stock_cost_for_holding += stock_bought_price * stock_num;  
     profit_or_loss_for_holding = (stock_real_info.price - stock_bought_price) * stock_num;
     stock_value_ += stock_real_info.price * stock_num;
@@ -94,6 +95,7 @@ bool GroupAccountInfo::fetch_group_account_info(strade_share::SSEngine* ss_engin
 
 YieldsHistoryInfo::YieldsHistoryInfo():
   gid_(0),
+  gname_(""),
   date_(""),
   yields_(0.0) {
 }

@@ -6,6 +6,7 @@ PROC_NAME = user
 OUTPUT_FILE = /var/www/cgi-bin/strade/user/$(PROC_NAME).fcgi
 LIBRARY_PATH = ./../../../library
 PUB_PATH = ../../pub
+FCGI_MODULE_PATH = ${PUB_PATH}/fcgimodule/
 ## 编译器
 COMPILER = g++
 COMPILERC = gcc
@@ -33,7 +34,7 @@ INCLUDE_PATHS = -I$(LIBRARY_PATH)/public \
 	  -I$(PUB_PATH)
 
 ## 库
-LINK_LIBRARYS = -lrt -lpthread -lfcgi++
+LINK_LIBRARYS = -lrt -lpthread -lfcgi
 
 # 编译
 COMPILE = $(COMPILER) $(CPP_FLAG) $(INCLUDE_PATHS) -o $@

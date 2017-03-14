@@ -78,6 +78,7 @@ class UserLogic {
   bool SendResponse(int socket, Status& status);
   bool SendResponse(int socket, ResHead& msg);
  private:
+  void OnSubmitMultiOrder(int socket, DictionaryValue& dict);
 };
 
 } /* namespace strade_user */

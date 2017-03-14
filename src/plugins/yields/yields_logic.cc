@@ -94,9 +94,7 @@ bool YieldsLogic::OnYieldsMessage(struct server *srv,     \
     }
 
     scoped_ptr<RecvPacketBase> packet(new RecvPacketBase(value));
-    LOG_DEBUG2("message %s", "yields plugin");
     uint32 type = packet->GetType();
-
     switch (type) {
       case USER_ACCOUNT_INFO: {
         r = OnRequestGroupAccountInfo(srv, socket, value);

@@ -41,7 +41,7 @@ bool StradeShareTimer::InitParam() {
   return true;
 }
 
-void StradeShareTimer::Update(int opcode) {
+void StradeShareTimer::Update(int opcode, void* param) {
   switch (opcode) {
     case REALTIME_MARKET_VALUE_UPDATE: {
       JudgeUpdateTodayHist();
@@ -56,8 +56,10 @@ void StradeShareTimer::Update(int opcode) {
 bool StradeShareTimer::OnTimeLoadStockVisit() {
   static const std::string LOAD_STOCK_VISIT_SQL =
       "SELECT stock_code, SUM(COUNT) FROM `stock_visit` GROUP BY stock_code";
-  ss_engine_->AddMysqlAsyncJob(2, LOAD_STOCK_VISIT_SQL,
-                               OnTimeLoadStockVisitCallback, MYSQL_READ);
+  if(StockUtil::Instance()->is_trading_time()) {
+    ss_engine_->AddMysqlAsyncJob(2, LOAD_STOCK_VISIT_SQL,
+                                 OnTimeLoadStockVisitCallback, MYSQL_READ);
+  }
   return true;
 }
 
@@ -80,8 +82,9 @@ void StradeShareTimer::OnTimeLoadStockVisitCallback(
       stock_total_info.set_visit_num(visit_count);
     }
   }
-  LOG_DEBUG2("load stock visit num finshed! size=%d",
-             rows_vec.size());
+
+//  LOG_DEBUG2("load stock visit num finshed! size=%d",
+//             rows_vec.size());
 }
 
 bool StradeShareTimer::JudgeUpdateTodayHist() {
@@ -186,13 +189,14 @@ void StradeShareTimer::OnTimeTest() {
   //TODO 测试
   return;
   bool r = false;
+  std::string stock_code = "000002";
   StockTotalInfo stock_total_info;
-  r = ss_engine_->GetStockTotalInfoByCode("hs300", stock_total_info);
+  r = ss_engine_->GetStockTotalInfoByCode(stock_code, stock_total_info);
   if (!r) {
-    LOG_DEBUG("hs300 not exists");
+    LOG_DEBUG2("%s not exists", stock_code.c_str());
     return;
   }
-
+  LOG_DEBUG2("outstanding=%.2f", stock_total_info.get_outstanding());
   StockRealInfo stock_real_info;
   r = stock_total_info.GetCurrRealMarketInfo(stock_real_info);
   if (!r) {
@@ -204,6 +208,7 @@ void StradeShareTimer::OnTimeTest() {
              stock_real_info.code.c_str(),
              stock_real_info.tradetime,
              stock_real_info.price);
+
 }
 
 } /* namespace strade_share_logic */
