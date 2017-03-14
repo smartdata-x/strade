@@ -24,27 +24,18 @@ class RealInfoToday {
     return buf;
   }
   
-  static bool RemoveDuplicate(std::list<StockRealInfo> *today) {
-  
-    time_t start = GetTradeStart();
-    std::list<StockRealInfo>::iterator it = today->begin();
-    std::string old_time;
-    while (it != today->end()) {
-      if (it->ts < start) {
-        LOG_MSG2("Remove %u", it->ts);
-        today->erase(it++);
-        continue;
-      }
-      if (it->time == old_time) { 
-        LOG_MSG2("Remove %u", it->ts);
-        today->erase(it++);
-      } else {
-        old_time = it->time;
-        it++;
-      }
+  static void CalculateVol(std::list<StockRealInfo> *today) {
+    std::list<StockRealInfo>::reverse_iterator it = today->rbegin();
+    while (it != today->rend()) {
+      std::list<StockRealInfo>::reverse_iterator tmp = it;
+      tmp++;
+      if (tmp != today->rend())
+        it->vol = it->vol - tmp->vol;
+      it++;
     }
-    return true;
-  }
+  }  
+ 
+  static bool RemoveDuplicate(std::list<StockRealInfo> *today); 
 
 };
 

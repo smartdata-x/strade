@@ -128,5 +128,5 @@ $(CUSTOM_THIRD_PATH)/dmg_fp/lib/dmg_fp.a $(LIB_DIR)/base/lib/mybase.a $(LIB_DIR)
 	make -C src
 	ln -sf strade_share.so      $(SO_DIR)/../strade_share/libstrade_share.so
 	ln -sf libcandlestick_core.so.1 $(SO_DIR)/candlestick/libcandlestick_core.so
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LINK_PATHS) -lpthread -lexpat -lrt -lpthread -ldl -liconv -lmysqlclient -lcurl \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LINK_PATHS) -lpthread -lexpat -lrt -lpthread -ldl -lmysqlclient -lcurl \
 $^ -o $@  -L $(SO_DIR)/../strade_share -Wl,-rpath=$(SO_DIR)/candlestick -Wl,-rpath=. -Wl,-rpath=plugins/candlestick -lcandlestick_core -Wl,-rpath=strade_share -lstrade_share
