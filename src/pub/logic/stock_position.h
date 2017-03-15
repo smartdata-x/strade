@@ -126,6 +126,7 @@ class GroupStockPosition : public base_logic::AbstractDao {
   uint32 available() const { return data_->available_; }
   double cost() const;
   double total_cost() const;
+  double bought_fee() const;
   bool initialized() const { return data_->initialized_; }
  private:
   class Data {
