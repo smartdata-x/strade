@@ -15,10 +15,10 @@ namespace yields {
 GroupAccountInfo::GroupAccountInfo():
   gid_(0),
   total_assets_(0.0),
-  yields_of_day_(0.0),
+  //yields_of_day_(0.0),
   total_yields_(0.0),
   usable_assets_(0.0),
-  profit_or_loss_(0.0),
+  //profit_or_loss_(0.0),
   stock_value_(0.0),
   holding_yields_(0.0){
 }
@@ -49,8 +49,8 @@ bool GroupAccountInfo::fetch_group_account_info(strade_share::SSEngine* ss_engin
   //stock_value
   strade_user::GroupStockPositionList group_position_list = user_info->GetGroupStockPosition(group_id);
 
-  double profit_or_loss_for_holding = 0.0;
-  double stock_cost_for_holding = 0.0;
+  //double profit_or_loss_for_holding = 0.0;
+  //double stock_cost_for_holding = 0.0;
   for(std::vector<strade_user::GroupStockPosition>::iterator it = group_position_list.begin(); \
       it != group_position_list.end(); ++it) {
     std::string stock_code = it->code();
@@ -58,8 +58,8 @@ bool GroupAccountInfo::fetch_group_account_info(strade_share::SSEngine* ss_engin
     strade_logic::StockRealInfo stock_real_info;
     ss_engine->GetStockCurrRealMarketInfo(stock_code, stock_real_info);
     double stock_bought_price = it->cost();
-    stock_cost_for_holding += stock_bought_price * stock_num;  
-    profit_or_loss_for_holding = (stock_real_info.price - stock_bought_price) * stock_num;
+    //stock_cost_for_holding += stock_bought_price * stock_num;  
+    //profit_or_loss_for_holding = (stock_real_info.price - stock_bought_price) * stock_num;
     stock_value_ += stock_real_info.price * stock_num;
   }
 
@@ -68,6 +68,7 @@ bool GroupAccountInfo::fetch_group_account_info(strade_share::SSEngine* ss_engin
   int temp = usable_assets_ + frozen_assets;
   total_assets_ = temp + stock_value_;
 
+  /*
   //profit_or_loss
   double profit_or_loss_for_deal = 0.0;
   double stock_cost_for_deal = 0.0;
@@ -83,13 +84,16 @@ bool GroupAccountInfo::fetch_group_account_info(strade_share::SSEngine* ss_engin
   } else {
     yields_of_day_ = profit_or_loss_/stock_total_cost;
   }
+  */
 
-  //total_yields
   double initial_assets = stock_group_ptr->init_capital();
-  total_yields_ = (total_assets_ - initial_assets)/initial_assets;
 
   //holding_yields 持仓收益
   double holding_yields_ = total_assets_ - initial_assets;
+
+  //total_yields
+  total_yields_ = holding_yields_ / initial_assets;
+
   return true;
 }
 

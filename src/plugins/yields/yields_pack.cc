@@ -36,10 +36,10 @@ void SendYieldsPack::GroupAccountInfoToSendPack(GroupAccountInfo* group_account_
 
     nb_pt->SetBigInteger("group_id", group_account_info_pt->get_group_id());
     nb_pt->SetReal("total_assets", group_account_info_pt->get_total_assets());
-    nb_pt->SetReal("yields_of_day", group_account_info_pt->get_yields_of_day());
+    //nb_pt->SetReal("yields_of_day", group_account_info_pt->get_yields_of_day());
     nb_pt->SetReal("total_yields", group_account_info_pt->get_total_yields());
     nb_pt->SetReal("usable_assets", group_account_info_pt->get_usable_assets());
-    nb_pt->SetReal("profit_or_loss", group_account_info_pt->get_profit_or_loss());
+    //nb_pt->SetReal("profit_or_loss", group_account_info_pt->get_profit_or_loss());
     nb_pt->SetReal("stock_value", group_account_info_pt->get_stock_value());
     nb_pt->SetReal("holding_yields", group_account_info_pt->get_holding_yields());
 
