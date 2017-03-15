@@ -158,7 +158,7 @@ bool YieldsLogic::OnTimeout(struct server *srv, char *id, int opcode, int time) 
 
 bool YieldsLogic::OnUpdateYields() {
   /*
-  需求修改为：1.除去当前持仓这个组合  2.计算每个组合剩余持仓股票的收益率（用股票当天的（收盘价-购买价）*数量），不考虑买入时各项费用
+  需求修改为：1.除去当前持仓这个组合  2.计算每个组合剩余持仓股票的收益率（用股票当天的（收盘价-购买价）*数量），考虑买入时各项费用
   通过当前持仓
   */
   //update between 23:00~23:59
@@ -192,14 +192,15 @@ bool YieldsLogic::OnUpdateYields() {
       double stock_buying_costs = 0.0;
 	  strade_user::GroupStockPositionList group_position_list = user_info.GetGroupStockPosition(it_2->id());
       for(std::vector<strade_user::GroupStockPosition>::iterator it_3 = group_position_list.begin(); \
-          it_3 != group_position_list.end(); ++it_3) { //遍历该组合下所有股票
+          it_3 != group_position_list.end(); ++it_3) { //遍历该组合下所有股票(仓位)
         std::string stock_code = it_3->code();
         int stock_num = it_3->count();
-        double stock_bought_price = it_3->cost();
+        double stock_bought_price = it_3->cost(); //总买入价
+        double stock_bought_fee = it_3->bought_fee(); //买入时总费用
         strade_logic::StockRealInfo stock_real_info;
         ss_engine_->GetStockCurrRealMarketInfo(stock_code, stock_real_info);
-        profit_or_loss_for_holding += (stock_real_info.close - stock_bought_price) * stock_num;
-        stock_buying_costs += stock_bought_price * stock_num;
+        stock_buying_costs += stock_bought_price + stock_bought_fee;
+        profit_or_loss_for_holding += stock_real_info.close * stock_num - stock_buying_costs;
       }
 
       double today_yields = 0.0;
@@ -212,9 +213,8 @@ bool YieldsLogic::OnUpdateYields() {
       std::stringstream sql;
       uint32 user_id = it_1->first;
       uint32 group_id = it_2->id();
-      std::string group_name = it_2->name();
       sql << "call proc_UpdateYields(" << user_id << "," << group_id  \
-          << ",'" << group_name << "','"<< date << "'," << today_yields << ")";
+          << ",'"<< date << "'," << today_yields << ")";
 
       bool r = ss_engine_->WriteData(sql.str());
       if (!r) {
