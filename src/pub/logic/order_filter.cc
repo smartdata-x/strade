@@ -10,10 +10,6 @@ bool OrderFilter::filter(const OrderInfo& order) {
   if (0 == group_id_
       || order.group_id() == group_id_)
     return false;
-
-//  if(order.group_id() == group_id_) {
-//    return false;
-//  }
   return true;
 }
 
@@ -32,8 +28,6 @@ bool OrderStatusFilter::filter(const OrderInfo& order) {
 }
 
 bool OrderCreateTimeFilter::filter(const OrderInfo& order) {
-  LOG_MSG2("OrderCreateTimeFilter begin=%d, end=%d, deal_time=%d",
-           begin_time_, end_time_, order.create_time());
   if (order.create_time() >= begin_time_
       && order.create_time() <= end_time_) {
     return false;
@@ -42,8 +36,6 @@ bool OrderCreateTimeFilter::filter(const OrderInfo& order) {
 }
 
 bool OrderDealTimeFilter::filter(const OrderInfo& order) {
-  LOG_MSG2("OrderDealTimeFilter begin=%d, end=%d, deal_time=%d",
-           begin_time_, end_time_, order.deal_time());
   if (order.deal_time() >= begin_time_
       && order.deal_time() <= end_time_) {
     return false;
@@ -52,8 +44,6 @@ bool OrderDealTimeFilter::filter(const OrderInfo& order) {
 }
 
 bool OrderProfitFilter::filter(const OrderInfo& order) {
-  LOG_MSG2("OrderProfitFilter, order_id=%d, profit=%.2f",
-           order.id(), order.profit());
   if(order.profit() > 0.0) {
     return false;
   }
@@ -61,8 +51,6 @@ bool OrderProfitFilter::filter(const OrderInfo& order) {
 }
 
 bool OrderLossFilter::filter(const OrderInfo& order) {
-  LOG_MSG2("OrderLossFilter, order_id=%d, profit=%.2f",
-           order.id(), order.profit());
   if (order.profit() < 0.0) {
     return false;
   }

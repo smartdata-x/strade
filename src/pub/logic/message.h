@@ -179,6 +179,7 @@ struct QueryHoldingStocksReq : ReqHead {
 struct QueryHoldingStocksRes : ResHead {
   struct StockInfo {
     std::string code;
+    std::string name;
     uint32 holding;
     uint32 available;
     double cost;
@@ -218,6 +219,11 @@ struct QueryTodayOrdersRes : ResHead {
     OrderStatus status;
     bool Serialize(DictionaryValue& dict);
   };
+
+  static int cmp(const OrderInfo& lhs, const OrderInfo& rhs) {
+    return lhs.order_time > rhs.order_time;
+  }
+
   typedef std::vector<OrderInfo> OrderList;
   OrderList order_list;
 
@@ -236,6 +242,7 @@ struct QueryTodayFinishedOrdersReq : ReqHead {
 struct QueryTodayFinishedOrdersRes : ResHead {
   struct OrderInfo {
     std::string code;
+    std::string name;
     OrderOperation op;
     double order_price;
     uint32 order_nums;
@@ -264,6 +271,7 @@ struct QueryHistoryFinishedOrdersReq : ReqHead {
 struct QueryHistoryFinishedOrdersRes : ResHead {
   struct OrderInfo {
     std::string code;
+    std::string name;
     OrderOperation op;
     double order_price;
     double order_nums;
@@ -301,6 +309,7 @@ struct QueryStatementRes : ResHead {
     double available_capital;
     bool Serialize(DictionaryValue& dict);
   };
+
   typedef std::vector<StatementRecord> StatementRecordList;
   StatementRecordList statement_list;
 

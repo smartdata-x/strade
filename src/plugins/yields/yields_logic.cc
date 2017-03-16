@@ -90,7 +90,8 @@ bool YieldsLogic::OnYieldsMessage(struct server *srv,     \
     if (NULL == value) {
       error_code = STRUCT_ERROR;
       //send_error(error_code, socket);
-      r = true;
+      r = false;
+      break;
     }
 
     scoped_ptr<RecvPacketBase> packet(new RecvPacketBase(value));
@@ -210,9 +211,8 @@ bool YieldsLogic::OnUpdateYields() {
       std::stringstream sql;
       uint32 user_id = it_1->first;
       uint32 group_id = it_2->id();
-      std::string group_name = it_2->name();
       sql << "call proc_UpdateYields(" << user_id << "," << group_id  \
-          << ",'" << group_name << "','"<< date << "'," << today_yields << ")";
+          << ",'" << date << "'," << today_yields << ")";
 
       bool r = ss_engine_->WriteData(sql.str());
       if (!r) {

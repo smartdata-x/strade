@@ -143,6 +143,7 @@ bool UserInfo::InitOrder() {
   return true;
 }
 
+// holding_record 与 delegation_record 绑定对应
 void UserInfo::BindOrder() {
   for (size_t i = 0; i < data_->stock_position_list_.size(); ++i) {
     FakeStockPositionList& fps =
@@ -614,6 +615,7 @@ bool UserInfo::OnBuyOrderDone(OrderInfo* order) {
   gp->AddFakeStockPosition(fp);
   LOG_MSG2("group_id:%d, available:%d,holdingId:%d",
            gp->group_id(), gp->available(), id);
+
   //TODO 自动止损先去掉
   return true;
 

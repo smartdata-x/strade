@@ -9,6 +9,7 @@
 #include "logic/base_values.h"
 #include "logic/logic_comm.h"
 #include "basic/basic_util.h"
+#include <algorithm>
 
 namespace strade_user {
 
@@ -254,6 +255,7 @@ void QueryHoldingStocksReq::Dump(std::ostringstream& oss) {
 
 bool QueryHoldingStocksRes::StockInfo::Serialize(DictionaryValue& dict) {
   dict.SetString(L"code", code);
+  dict.SetString(L"name", name);
   dict.SetBigInteger(L"holding", holding);
   dict.SetBigInteger(L"available", available);
   dict.SetReal(L"cost", cost);
@@ -307,6 +309,7 @@ bool QueryTodayOrdersRes::OrderInfo::Serialize(DictionaryValue& dict) {
 }
 
 bool QueryTodayOrdersRes::Serialize(DictionaryValue& dict) {
+  std::sort(order_list.begin(), order_list.end(), QueryTodayOrdersRes::cmp);
   ListValue* unit_list = new ListValue();
   for (size_t i = 0; i < order_list.size(); ++i) {
     DictionaryValue* unit = new DictionaryValue();
@@ -334,6 +337,7 @@ void QueryTodayFinishedOrdersReq::Dump(std::ostringstream& oss) {
 
 bool QueryTodayFinishedOrdersRes::OrderInfo::Serialize(DictionaryValue& dict) {
   dict.SetString(L"code", code);
+  dict.SetString(L"name", name);
   dict.SetBigInteger(L"order_operation", op);
   dict.SetReal(L"order_price", order_price);
   dict.SetBigInteger(L"order_nums", order_nums);
@@ -380,6 +384,7 @@ void QueryHistoryFinishedOrdersReq::Dump(std::ostringstream& oss) {
 
 bool QueryHistoryFinishedOrdersRes::OrderInfo::Serialize(DictionaryValue& dict) {
   dict.SetString(L"code", code);
+  dict.SetString(L"name", name);
   dict.SetBigInteger(L"order_operation", op);
   dict.SetReal(L"order_price", order_price);
   dict.SetBigInteger(L"order_nums", order_nums);
@@ -561,10 +566,6 @@ bool SubmitMultiOrderReq::Deserialize(DictionaryValue& dict) {
   // construct single order
   for (size_t i = 0; i < total_order_num; ++i) {
     SubmitOrderReq req;
-
-
-
-
 
   }
 
