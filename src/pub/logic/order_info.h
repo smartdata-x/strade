@@ -16,15 +16,21 @@
 #include "basic/basictypes.h"
 #include "observer.h"
 #include "dao/abstract_dao.h"
+#include "logic/message.h"
 
+namespace strade_share {
+class SSEngine;
+}
 
 namespace strade_user {
 
+using strade_share::SSEngine;
 struct SubmitOrderReq;
 
 class OrderInfo : public strade_logic::Observer,
                   public base_logic::AbstractDao {
  public:
+  static SSEngine* engine_;
   enum {
     ID,
     USER_ID,
@@ -45,7 +51,8 @@ class OrderInfo : public strade_logic::Observer,
     ORDER_TYPE,
     AMOUNT,
     PROFIT,
-    AVAILABLE_CAPITAL
+    AVAILABLE_CAPITAL,
+    CREATE_TIME
   };
 
   enum OrderType {
@@ -72,7 +79,7 @@ class OrderInfo : public strade_logic::Observer,
   void OnOrderCancel();
  private:
   void Deserialize();
-  void Update(int opcode);
+  void Update(int opcode, void* param=NULL);
   void OnStockUpdate();
  public:
   OrderId id() const { return data_->id_; }
@@ -87,7 +94,7 @@ class OrderInfo : public strade_logic::Observer,
   void set_frozen(double frozen) { data_->frozen_ = frozen; }
   double frozen() const { return data_->frozen_; }
 
-  time_t craete_time() const { return data_->create_time_; }
+  time_t create_time() const { return data_->create_time_; }
   time_t deal_time() const { return data_->deal_time_; }
 
   uint32 order_num() const { return data_->order_num_; }
@@ -103,7 +110,8 @@ class OrderInfo : public strade_logic::Observer,
   double expected_price() const { return data_->expected_price_; }
 
   void set_available_capital(double available_capital) {
-    data_->available_capital_ = available_capital; }
+    data_->available_capital_ = available_capital;
+  }
   double available_capital() const { return data_->available_capital_; }
 
   void set_profit(double profit) { data_->profit_ = profit; }
@@ -118,6 +126,22 @@ class OrderInfo : public strade_logic::Observer,
   }
 
   bool initialized() const { return data_->initialized_; }
+
+  const std::string& ToString() const {
+    using std::endl;
+    std::ostringstream oss;
+    OSS_WRITE(data_->user_id_);
+    OSS_WRITE(data_->group_id_);
+    OSS_WRITE(data_->op_);
+    OSS_WRITE(data_->status_);
+    OSS_WRITE(data_->create_time_);
+    OSS_WRITE(data_->order_price_);
+    OSS_WRITE(data_->order_num_);
+    OSS_WRITE(data_->deal_time_);
+    OSS_WRITE(data_->deal_price_);
+    OSS_WRITE(data_->deal_num_);
+    return oss.str();
+  }
  private:
   class Data {
    public:

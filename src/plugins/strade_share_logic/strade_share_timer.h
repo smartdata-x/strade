@@ -26,7 +26,7 @@ class StradeShareTimer : public strade_logic::Observer{
   void OnTimeTest();
 
  private:
-  virtual void Update(int opcode);
+  virtual void Update(int opcode, void* param);
   bool JudgeUpdateTodayHist();
   void WriteStockCurrHistTODB(std::vector<StockRealInfo>& today_hist);
 

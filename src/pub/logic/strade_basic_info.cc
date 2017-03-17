@@ -133,6 +133,7 @@ void StockTotalInfo::Deserialize() {
   GetReal(data_->totalAssets_);
   GetReal(data_->bvps_);
   GetReal(data_->pb_);
+  GetString(data_->industry_);
   data_->market_value_ = data_->outstanding_ * data_->bvps_ * data_->pb_;
 }
 

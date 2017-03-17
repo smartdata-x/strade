@@ -42,6 +42,19 @@ bool RedisController::GetAllHashFields(const std::string& hkey, StringArray& res
   return true;
 }
 
+bool RedisController::GetAllHash(const std::string& hname,
+                                 std::map<std::string, std::string>& hmap) {
+
+  base_storage::DictionaryStorageEngine* redis_engine = GetRedisEngine();
+  if(NULL == redis_engine) {
+    return false;
+  }
+  if(!redis_engine->GetAllHash(hname.c_str(), hname.size(), hmap)) {
+    return false;
+  }
+  return true;
+}
+
 bool RedisController::AddHashElement(std::string& hash_name, std::string& key, std::string& value){
     base_storage::DictionaryStorageEngine* redis_engine = GetRedisEngine();
     if( NULL == redis_engine ){
@@ -154,5 +167,6 @@ bool RedisController::ReadHashData(base_logic::Value* value,
     dict->GetList(L"resultvalue", &list_value);
     return true;
 }
+
 
 }  // namespace base_logic

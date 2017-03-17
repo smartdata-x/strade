@@ -34,7 +34,7 @@ StradeShareDB::~StradeShareDB() {
 
 bool StradeShareDB::FetchAllStockList(std::vector<StockTotalInfo>& stock_vec) {
   static const std::string& SQL =
-      "SELECT `code`, `name`, `outstanding`, `totalAssets`, `bvps`, `pb` FROM `algo_get_stock_basics`;";
+      "SELECT `code`, `name`, `outstanding`, `totalAssets`, `bvps`, `pb`, `industry` FROM `algo_get_stock_basics`;";
   return mysql_engine_->ReadData<StockTotalInfo>(SQL, stock_vec);
 }
 
@@ -42,7 +42,7 @@ bool StradeShareDB::FetchStockHistList(const std::string& stock_code,
                                        std::vector<StockHistInfo>& stock_hist_vec) {
   std::string SQL =
       "SELECT date, open, high, close, low, volume FROM algo_get_hist_data WHERE CODE = '"
-          + stock_code + "' ORDER BY DATE DESC;";
+          + stock_code + "' ORDER BY DATE DESC LIMIT 30;";
   return mysql_engine_->ReadData<StockHistInfo>(SQL, stock_hist_vec);
 }
 

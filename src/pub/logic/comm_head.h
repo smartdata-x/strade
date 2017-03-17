@@ -15,7 +15,6 @@ enum STRADE_SHARE_SIGNAL {
 
 };
 
-#define USER_API  1001
 } /* namespace strade_logic */
 
 #endif //STRADE_COMM_HEAD_H_H

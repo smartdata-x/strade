@@ -11,11 +11,14 @@
 #include "basic/basictypes.h"
 #include "user_defined_types.h"
 
+#define OSS_WRITE(x)        \
+  oss << "\t\t" << #x << " = " << x << std::endl
+
 namespace base_logic {
 class Value;
 class ListValue;
 class DictionaryValue;
-}
+} /* namespace base_logic */
 
 using base_logic::Value;
 using base_logic::ListValue;
@@ -62,16 +65,16 @@ struct Status {
     NOT_IN_ORDER_TIME
   };
 
-  Status() : state(SUCCESS) { }
+  Status() : state(SUCCESS) {}
   Status(State s)
-      : state(s) { }
+      : state(s) {}
   State state;
   std::string to_string();
   bool Serialize(DictionaryValue& dict);
 };
 
 struct ResHead {
-  virtual ~ResHead() { }
+  virtual ~ResHead() {}
   Status status;
   bool StartSerialize(DictionaryValue& dict);
   virtual bool Serialize(DictionaryValue& dict);
@@ -153,11 +156,12 @@ struct QueryStocksRes : ResHead {
     double change;
     uint64 volume;          // 单位手
     std::string industry;   // 行业
+    uint32 holding_num;
     bool Serialize(DictionaryValue& dict);
   };
   typedef std::vector<StockInfo> StockList;
-
   StockList stock_list;
+  double available_capital;   // 组合可用资金
 
   bool Serialize(DictionaryValue& dict);
 };
@@ -175,6 +179,7 @@ struct QueryHoldingStocksReq : ReqHead {
 struct QueryHoldingStocksRes : ResHead {
   struct StockInfo {
     std::string code;
+    std::string name;
     uint32 holding;
     uint32 available;
     double cost;
@@ -202,6 +207,8 @@ struct QueryTodayOrdersReq : ReqHead {
 
 struct QueryTodayOrdersRes : ResHead {
   struct OrderInfo {
+    GroupId group_id;
+    std::string group_name;
     uint32 id;
     std::string code;
     std::string name;
@@ -212,6 +219,11 @@ struct QueryTodayOrdersRes : ResHead {
     OrderStatus status;
     bool Serialize(DictionaryValue& dict);
   };
+
+  static int cmp(const OrderInfo& lhs, const OrderInfo& rhs) {
+    return lhs.order_time > rhs.order_time;
+  }
+
   typedef std::vector<OrderInfo> OrderList;
   OrderList order_list;
 
@@ -230,6 +242,7 @@ struct QueryTodayFinishedOrdersReq : ReqHead {
 struct QueryTodayFinishedOrdersRes : ResHead {
   struct OrderInfo {
     std::string code;
+    std::string name;
     OrderOperation op;
     double order_price;
     uint32 order_nums;
@@ -258,6 +271,7 @@ struct QueryHistoryFinishedOrdersReq : ReqHead {
 struct QueryHistoryFinishedOrdersRes : ResHead {
   struct OrderInfo {
     std::string code;
+    std::string name;
     OrderOperation op;
     double order_price;
     double order_nums;
@@ -295,6 +309,7 @@ struct QueryStatementRes : ResHead {
     double available_capital;
     bool Serialize(DictionaryValue& dict);
   };
+
   typedef std::vector<StatementRecord> StatementRecordList;
   StatementRecordList statement_list;
 
@@ -312,6 +327,29 @@ struct SubmitOrderReq : ReqHead {
   double expected_price;    // 止损或止盈价格
   uint32 order_nums;
   OrderOperation op;
+
+  std::vector<std::string> code_list;
+  std::vector<double> price_list;
+
+  bool Deserialize(DictionaryValue& dict);
+  void Dump(std::ostringstream& oss);
+};
+
+struct SubmitMultiOrderReq : ReqHead {
+  const static uint32 ID = 111;
+
+  std::string code_strs;
+  std::string price_strs;
+
+  GroupId group_id;
+  double expected_price;    // 止损或止盈价格
+  uint32 order_nums;
+  OrderOperation op;
+
+  std::vector<std::string> code_list;
+  std::vector<double> price_list;
+
+  std::vector<SubmitOrderReq> single_order_vec;
 
   bool Deserialize(DictionaryValue& dict);
   void Dump(std::ostringstream& oss);
@@ -360,6 +398,7 @@ struct AvailableStockCountRes : ResHead {
   std::string code;
   std::string name;
   uint32 count;
+  double available_capital;
   bool Serialize(DictionaryValue& dict);
 };
 
@@ -402,6 +441,6 @@ struct ModifyInitCapitalRes : ResHead {
   bool Serialize(DictionaryValue& dict);
 };
 
-}
+} /* namespace strade_user */
 
 #endif /* SRC_PUB_LOGIC_USER_MESSAGE_H_ */

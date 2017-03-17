@@ -19,7 +19,7 @@ class Subject {
   Subject();
   virtual ~Subject();
 
-  virtual void Notify(int opcode);
+  virtual void Notify(int opcode, void* param);
   virtual void Attach(Observer*);
 
   std::list<Observer*> m_lst;

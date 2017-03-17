@@ -15,7 +15,7 @@
 //#include <fcgi_config.h>
 //#endif
 
-#include "base/fcgimodule.h"
+#include "fcgimodule/fcgimodule.h"
 #include "logic/comm_head.h"
 #include "net/operator_code.h"
 // 设置请求类型

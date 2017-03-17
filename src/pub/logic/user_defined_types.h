@@ -31,7 +31,7 @@ enum OrderOperation {
 };
 
 enum OrderStatus {
-  PENDING,
+  PENDING = 0,
   FINISHED,
   CANCEL      // 撤销
 };

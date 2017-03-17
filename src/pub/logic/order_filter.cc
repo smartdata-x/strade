@@ -28,8 +28,8 @@ bool OrderStatusFilter::filter(const OrderInfo& order) {
 }
 
 bool OrderCreateTimeFilter::filter(const OrderInfo& order) {
-  if (order.craete_time() >= begin_time_
-      && order.craete_time() <= end_time_) {
+  if (order.create_time() >= begin_time_
+      && order.create_time() <= end_time_) {
     return false;
   }
   return true;
@@ -44,11 +44,16 @@ bool OrderDealTimeFilter::filter(const OrderInfo& order) {
 }
 
 bool OrderProfitFilter::filter(const OrderInfo& order) {
-  if (order.profit() >= min_
-      && order.profit() <= max_) {
+  if(order.profit() > 0.0) {
     return false;
   }
   return true;
 }
 
+bool OrderLossFilter::filter(const OrderInfo& order) {
+  if (order.profit() < 0.0) {
+    return false;
+  }
+  return true;
+}
 } /* namespace strade_user */

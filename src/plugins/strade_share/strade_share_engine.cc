@@ -131,7 +131,7 @@ void SSEngineImpl::UpdateStockRealMarketData(
   }
 
   // 通知所有需要实时行情数据的观察者
-  this->Notify(strade_logic::REALTIME_MARKET_VALUE_UPDATE);
+  this->Notify(strade_logic::REALTIME_MARKET_VALUE_UPDATE, (void*)this);
 }
 
 bool SSEngineImpl::UpdateStockHistInfoByDate(const std::string& stock_code,

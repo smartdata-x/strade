@@ -15,7 +15,7 @@ Observer::~Observer() {
 }
 
 void Observer::Init() {
-
+  stale_ = false;
 }
 
 } /* namespace strade_logic */

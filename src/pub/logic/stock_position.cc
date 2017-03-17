@@ -21,15 +21,16 @@ FakeStockPosition::FakeStockPosition(StockPositionId id, OrderInfo* order) {
   data_ = new Data();
   data_->id_ = id;
   data_->count_ = order->deal_num();
+  data_->last_count_ = order->deal_num();
   data_->order_ = order;
 }
 
 REFCOUNT_DEFINE(FakeStockPosition)
 
 std::string FakeStockPosition::GetFakeStockPositionSql(
-                                           UserId user_id,
-                                           GroupId group_id,
-                                           std::string stock) {
+    UserId user_id,
+    GroupId group_id,
+    std::string stock) {
   std::ostringstream oss;
   oss << "SELECT `holdingId`, `userId`, `stock`, `num`, `groupId`, `delegate_id` "
       << "FROM `holding_record` "
@@ -43,6 +44,7 @@ std::string FakeStockPosition::GetFakeStockPositionSql(
 void FakeStockPosition::Deserialize() {
   GetInteger(HOLDING_ID, data_->id_);
   GetInteger(NUM, data_->count_);
+  data_->last_count_ = data_->count_;
   GetInteger(ORDER_ID, data_->order_id_);
 
   data_->initialized_ = true;
@@ -135,6 +137,7 @@ bool GroupStockPosition::AddFakeStockPosition(const FakeStockPosition& p) {
   }
   data_->fake_stock_position_list_.push_back(p);
   data_->count_ += p.count();
+  data_->available_ += p.count();
 
   return true;
 }

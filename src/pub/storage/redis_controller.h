@@ -17,53 +17,54 @@ namespace base_logic {
 
 class RedisController : public DataEngine {
  public:
-    RedisController() {
-    }
-    virtual ~RedisController() {
-    }
+  RedisController() {
+  }
+  virtual ~RedisController() {
+  }
 
  private:
-    base_storage::DictionaryStorageEngine* GetRedisEngine() {
-        base_dic::AutoDicCommEngine auto_engine;
-        base_storage::DictionaryStorageEngine* redis_engine = auto_engine
-                .GetDicEngine();
-        if ( NULL == redis_engine) {
-            LOG_ERROR("GetDicEngine redis_engine error");
-            return false;
-        }
-        return redis_engine;
+  base_storage::DictionaryStorageEngine* GetRedisEngine() {
+    base_dic::AutoDicCommEngine auto_engine;
+    base_storage::DictionaryStorageEngine* redis_engine = auto_engine
+        .GetDicEngine();
+    if (NULL == redis_engine) {
+      LOG_ERROR("GetDicEngine redis_engine error");
+      return false;
     }
+    return redis_engine;
+  }
 
  public:
-    void Release();
-    virtual void InitParam(std::list<base::ConnAddr>& addrlist);
+  void Release();
+  virtual void InitParam(std::list<base::ConnAddr>& addrlist);
 
  public:
-    bool AddValueInZSet(const char* hash_name, const char* key,
-                        const size_t key_len, const double score);
-    int AddRedisZsetMap(const char* hash_name, const size_t hash_len,
-                        std::map<std::string, double>& map);
-    bool WriteData(const int32 type, base_logic::Value* value);
+  bool AddValueInZSet(const char* hash_name, const char* key,
+                      const size_t key_len, const double score);
+  int AddRedisZsetMap(const char* hash_name, const size_t hash_len,
+                      std::map<std::string, double>& map);
+  bool WriteData(const int32 type, base_logic::Value* value);
 
-    bool ReadData(const int32 type, base_logic::Value* value,
-                  void (*storage_get)(void*, base_logic::Value*));
+  bool ReadData(const int32 type, base_logic::Value* value,
+                void (* storage_get)(void*, base_logic::Value*));
 
-    bool GetKey(const std::string& key, std::string& value);
+  bool GetKey(const std::string& key, std::string& value);
 
-    typedef std::vector<std::string> StringArray;
-    bool GetAllHashFields(const std::string& hkey, StringArray& res);
+  typedef std::vector<std::string> StringArray;
+  bool GetAllHashFields(const std::string& hkey, StringArray& res);
 
-    bool AddHashElement(std::string& hash_name, std::string& key, std::string& value);
+  bool GetAllHash(const std::string& hname, std::map<std::string, std::string>& hmap);
+  bool AddHashElement(std::string& hash_name, std::string& key, std::string& value);
 
-    bool GetHashElement(const std::string& hash_name,
-                        const std::string& key, std::string& value);
+  bool GetHashElement(const std::string& hash_name,
+                      const std::string& key, std::string& value);
 
  private:
-    bool ReadHashData(base_logic::Value* value,
-                      void (*storage_get)(void*, base_logic::Value*));
+  bool ReadHashData(base_logic::Value* value,
+                    void (* storage_get)(void*, base_logic::Value*));
 
-    bool ReadKeyValueData(base_logic::Value* value,
-                          void (*storage_get)(void*, base_logic::Value*));
+  bool ReadKeyValueData(base_logic::Value* value,
+                        void (* storage_get)(void*, base_logic::Value*));
 };
 
 }  // namespace base_logic

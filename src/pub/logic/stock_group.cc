@@ -24,6 +24,10 @@ StockGroup::StockGroup(UserId user_id,
   data_->id_ = id;
   data_->user_id_ = user_id;
   data_->name_ = name;
+
+  static const double DEFAULT_CAPITIAL = 500000;
+  data_->init_capital_ = DEFAULT_CAPITIAL;
+  data_->available_capital_ = DEFAULT_CAPITIAL;
 }
 
 REFCOUNT_DEFINE(StockGroup)
@@ -52,7 +56,7 @@ GroupId StockGroup::CreateGroup(UserId user_id,
   oss << "CALL `proc_CreateStockGroup`("
       << user_id << ","
       << "'" << name << "'" << ","
-      << (int)status << ")";
+      << (int) status << ")";
 
   MYSQL_ROWS_VEC row;
   if (!engine_->ExcuteStorage(1, oss.str(), row)) {
@@ -98,8 +102,10 @@ bool StockGroup::InitStockList() {
     data_->stock_list_.push_back(stock);
     data_->stock_set_.insert(stock);
   }
-  LOG_MSG2("user:%d group:%s init %d stocks",
-           data_->user_id_, data_->name_.data(), stocks.size());
+  LOG_MSG2("user:%d group:%s init %d stocks, initCaptial=%.2f, availableCaptial=%.2f",
+           data_->user_id_, data_->name_.data(),
+           stocks.size(), data_->init_capital_,
+           data_->available_capital_);
   return true;
 }
 
@@ -129,7 +135,7 @@ bool StockGroup::AddStocks(StockCodeList& stocks) {
     oss << "(" << data_->id_ << ",'" << s[i] << "', NOW()),";
   }
   std::string sql = oss.str();
-  sql.erase(sql.size()-1);
+  sql.erase(sql.size() - 1);
   LOG_DEBUG2("add stock list sql: %s", sql.data());
 
 //  SSEngine* engine = GetStradeShareEngine();
@@ -142,7 +148,6 @@ bool StockGroup::AddStocks(StockCodeList& stocks) {
   stocks.swap(s);
   return rc;
 }
-
 
 bool StockGroup::DelStocks(StockCodeList& stocks) {
   size_t n = stocks.size();
@@ -184,7 +189,7 @@ bool StockGroup::DelStocks(StockCodeList& stocks) {
 //  SSEngine* engine = GetStradeShareEngine();
     if (!engine_->WriteData(sql)) {
       LOG_ERROR2("user:%d del stock to group:%s error",
-          data_->user_id_, data_->name_.data());
+                 data_->user_id_, data_->name_.data());
     }
   }
   stocks.swap(s);

@@ -12,6 +12,7 @@
 
 namespace strade_user {
 
+using strade_logic::StockTotalInfo;
 using strade_logic::StockRealInfo;
 using strade_share::STOCK_REAL_MAP;
 
@@ -36,9 +37,9 @@ void UserInfo::Deserialize() {
 
   data_->initialized_ = true;
   LOG_DEBUG2("init user:%d, name:%s, passwd:%s, platform_id:%d, user_level:%d, "
-      "email:%s, phone:%s",
-      data_->id_, data_->name_.data(), data_->password_.data(), data_->platform_id_,
-      data_->level_, data_->email_.data(), data_->phone_.data());
+                 "email:%s, phone:%s",
+             data_->id_, data_->name_.data(), data_->password_.data(), data_->platform_id_,
+             data_->level_, data_->email_.data(), data_->phone_.data());
 }
 
 bool UserInfo::Init() {
@@ -110,6 +111,7 @@ bool UserInfo::InitOrder() {
   SSEngine* engine = GetStradeShareEngine();
   std::vector<OrderInfo> orders;
   std::string sql = OrderInfo::GetUserOrderSql(data_->id_);
+  LOG_DEBUG2("GetUserOrderSql sql=%s", sql.data());
   if (!engine->ReadData(sql, orders)) {
     LOG_ERROR2("init user:%s orders error", data_->name_.data());
     return false;
@@ -124,9 +126,9 @@ bool UserInfo::InitOrder() {
     data_->order_list_.push_back(new OrderInfo(o));
 
     if (o.status() == PENDING) {
-      size_t last = data_->order_list_.size()-1;
+      size_t last = data_->order_list_.size() - 1;
       if (o.operation() == SELL) {
-        GroupStockPosition *g = GetGroupStockPosition(o.group_id(), o.code());
+        GroupStockPosition* g = GetGroupStockPosition(o.group_id(), o.code());
         assert(NULL != g);
         assert(g->Delegate(o.order_num()));
       }
@@ -141,6 +143,7 @@ bool UserInfo::InitOrder() {
   return true;
 }
 
+// holding_record 与 delegation_record 绑定对应
 void UserInfo::BindOrder() {
   for (size_t i = 0; i < data_->stock_position_list_.size(); ++i) {
     FakeStockPositionList& fps =
@@ -161,8 +164,8 @@ void UserInfo::BindOrder() {
 }
 
 Status::State UserInfo::CreateGroup(const std::string& name,
-                    StockCodeList& code_list,
-                    GroupId* id) {
+                                    StockCodeList& code_list,
+                                    GroupId* id) {
   base_logic::WLockGd lock(data_->lock_);
 
   for (size_t i = 0; i < data_->stock_group_list_.size(); ++i) {
@@ -183,6 +186,8 @@ Status::State UserInfo::CreateGroup(const std::string& name,
   data_->stock_group_list_.push_back(g);
 
   *id = group_id;
+  LOG_MSG2("group_id=%d, init_capitial=%.2f,available_capitial=%.2f",
+           g.id(), g.init_capital(), g.available_capital());
   return Status::SUCCESS;
 }
 
@@ -213,7 +218,7 @@ Status::State UserInfo::AddStock(GroupId group_id, StockCodeList& code_list) {
 //    group_id = data_->default_gid_;
 //  }
 
-  StockGroup *g = GetGroupWithNonLock(group_id);
+  StockGroup* g = GetGroupWithNonLock(group_id);
   if (NULL == g) {
     LOG_ERROR2("user:%s add stock error: group_id:%d not exist",
                data_->name_.data(), group_id);
@@ -234,7 +239,7 @@ Status::State UserInfo::DelStock(GroupId group_id, StockCodeList& code_list) {
 //    group_id = data_->default_gid_;
 //  }
 
-  StockGroup *g = GetGroupWithNonLock(group_id);
+  StockGroup* g = GetGroupWithNonLock(group_id);
   if (NULL == g) {
     LOG_ERROR2("user:%s del stock error: group_id:%d not exist",
                data_->name_.data(), group_id);
@@ -255,7 +260,7 @@ Status::State UserInfo::GetGroupStock(GroupId group_id, StockCodeList& stocks) {
 //    group_id = data_->default_gid_;
 //  }
 
-  StockGroup *g = GetGroupWithNonLock(group_id);
+  StockGroup* g = GetGroupWithNonLock(group_id);
   if (NULL == g) {
     LOG_ERROR2("user:%s get group stock error: group_id:%d not exist",
                data_->name_.data(), group_id);
@@ -277,18 +282,39 @@ OrderList UserInfo::FindOrders(const OrderFilterList& filters) {
 
   OrderList orders;
   for (size_t i = 0; i < data_->order_list_.size(); ++i) {
-    bool filter = false;
+    bool filter = true;
+    OrderInfo* curr_order = data_->order_list_[i];
+//    LOG_MSG2("\n order_info= \n %s", curr_order->ToString().c_str());
     for (size_t j = 0; j < filters.size(); ++j) {
-      if (filters[j]->filter(*data_->order_list_[i])) {
-        filter = true;
+      if (filters[j]->filter(*curr_order)) {
+        filter = false;
         break;
       }
     }
-    if (!filter) {
-      orders.push_back(data_->order_list_[i]);
+    if (filter) {
+      orders.push_back(curr_order);
     }
+
   }
+  LOG_MSG2("user_id:%d,total_orders:%d,filter_order:%d",
+             data_->id_, data_->order_list_.size(), orders.size() );
   return orders;
+
+
+//  OrderList orders;
+//  for (size_t i = 0; i < data_->order_list_.size(); ++i) {
+//    bool filter = false;
+//    for (size_t j = 0; j < filters.size(); ++j) {
+//      if (!filters[j]->filter(*data_->order_list_[i])) {
+//        filter = true;
+//        break;
+//      }
+//    }
+//    if (filter) {
+//      orders.push_back(data_->order_list_[i]);
+//    }
+//  }
+//  return orders;
 }
 
 GroupStockPositionList UserInfo::GetAllGroupStockPosition() {
@@ -298,7 +324,7 @@ GroupStockPositionList UserInfo::GetAllGroupStockPosition() {
 }
 
 GroupStockPosition* UserInfo::GetGroupStockPosition(GroupId group_id,
-                                          const std::string& code) {
+                                                    const std::string& code) {
   base_logic::RLockGd lock(data_->lock_);
 
   StockGroup* g = GetGroupWithNonLock(group_id);
@@ -318,8 +344,8 @@ GroupStockPosition* UserInfo::GetGroupStockPosition(GroupId group_id,
 }
 
 GroupStockPosition* UserInfo::GetGroupStockPositionWithNonLock(
-                                          GroupId group_id,
-                                          const std::string& code) {
+    GroupId group_id,
+    const std::string& code) {
   StockGroup* g = GetGroupWithNonLock(group_id);
   if (NULL == g) {
     LOG_ERROR2("user:%s get stock position error: group_id:%d not exist",
@@ -360,6 +386,7 @@ Status::State UserInfo::OnBuyOrder(SubmitOrderReq& req, double* frozen) {
   double need = 0.0;
   need = req.order_price * req.order_nums;
 
+  // 佣金
   double commission = need * COMMISSION_RATE;
   int round_commission = ROUND_COMMISSION(commission);
 
@@ -370,18 +397,19 @@ Status::State UserInfo::OnBuyOrder(SubmitOrderReq& req, double* frozen) {
 
   need += round_commission + transfer_fee;
 
+  LOG_DEBUG2("stock=%s, 印花税=%.2f, 过户费=%.2f",
+             req.code.c_str(), round_commission, transfer_fee);
+
   StockGroup* g = GetGroupWithNonLock(req.group_id);
   assert(NULL != g);
   if (need > g->available_capital()) {
     LOG_ERROR2("available capital not enough, "
-        "available_capital:%lf, need:%lf",
-        g->available_capital(), need);
+                   "available_capital:%lf, need:%lf",
+               g->available_capital(), need);
     return Status::CAPITAL_NOT_ENOUGH;
   }
 
   *frozen = need;
-  // frozen commitment
-  g->OnDelegateBuyOrderDelegate(need);
   return Status::SUCCESS;
 }
 
@@ -389,14 +417,14 @@ Status::State UserInfo::OnSellOrder(SubmitOrderReq& req) {
   GroupStockPosition* p = GetGroupStockPositionWithNonLock(req.group_id, req.code);
   if (NULL == p) {
     LOG_ERROR2("user:%s submit order error: no stock:%s position",
-        data_->name_.data(), req.code.data());
+               data_->name_.data(), req.code.data());
     return Status::NO_HOLDING_STOCK;
   }
 
   if (!p->Delegate(req.order_nums)) {
     LOG_ERROR2("user:%s submit order error: "
-        "current stock:%s count:%d less than order count:%d",
-        data_->name_.data(), req.code.data(), p->count(), req.order_nums);
+                   "current stock:%s count:%d less than order count:%d",
+               data_->name_.data(), req.code.data(), p->count(), req.order_nums);
     req.order_nums = p->available();
     p->Delegate(req.order_nums);
   }
@@ -404,12 +432,13 @@ Status::State UserInfo::OnSellOrder(SubmitOrderReq& req) {
 }
 
 SubmitOrderRes UserInfo::SubmitOrder(SubmitOrderReq& req) {
-  WlockThreadrw (data_->lock_);
+  WlockThreadrw(data_->lock_);
 
 //  if (0 == req.group_id) {
 //    req.group_id = data_->default_gid_;
 //  }
 
+  // step 1 获取组合
   SubmitOrderRes res;
   res.order_id = -1;
   res.status.state = Status::SUCCESS;
@@ -428,29 +457,42 @@ SubmitOrderRes UserInfo::SubmitOrder(SubmitOrderReq& req) {
 //    return Status::STOCK_NOT_IN_GROUP;
 //  }
 
-  STOCK_REAL_MAP stock = engine_->GetStockRealInfoMapCopy(req.code);
-  if (stock.empty()) {
+  // step 2 判断股票是否支持交易
+  bool r = false;
+  StockTotalInfo stock_total_info;
+  r = engine_->GetStockTotalInfoByCode(req.code, stock_total_info);
+  if (!r) {
     UnlockThreadrw(data_->lock_);
     LOG_ERROR2("stock:%s NOT EXIST", req.code.data());
     res.status.state = Status::STOCK_NOT_EXIST;
     return res;
   }
+//  STOCK_REAL_MAP stock = engine_->GetStockRealInfoMapCopy(req.code);
+//  if (stock.empty()) {
+//    UnlockThreadrw(data_->lock_);
+//    LOG_ERROR2("stock:%s NOT EXIST", req.code.data());
+//    res.status.state = Status::STOCK_NOT_EXIST;
+//    return res;
+//  }
 
   Status::State status;
   double frozen = 0.0;
+
+  // step 3 判断当前交易是否非法
   if (BUY == req.op) {
     status = OnBuyOrder(req, &frozen);
-  }
-
-  if (SELL == req.op) {
+  } else if (SELL == req.op) {
     status = OnSellOrder(req);
   }
 
+  // step 4 如果非法直接返回
   if (Status::SUCCESS != status) {
     UnlockThreadrw(data_->lock_);
     res.status.state = status;
     return res;
   }
+
+  // step 5 插入mysql委托记录表，更新组合可用资金和冻结资金
   // insert into mysql
   // 1. insert delegation_record table
   // 2. update available capital and frozen capital
@@ -461,7 +503,7 @@ SubmitOrderRes UserInfo::SubmitOrder(SubmitOrderReq& req) {
       << "'" << req.code << "'" << ","
       << req.order_price << ","
       << req.expected_price << ","
-      << (int)req.op << ","
+      << (int) req.op << ","
       << req.order_nums << ","
       << frozen << ")";
   MYSQL_ROWS_VEC row;
@@ -474,22 +516,41 @@ SubmitOrderRes UserInfo::SubmitOrder(SubmitOrderReq& req) {
   }
   assert(!row.empty() && !row[0].empty());
   OrderId order_id = atoi(row[0][0].data());
-  LOG_MSG2("user:%s new order:%d, code:%s, count:%d",
-           data_->name_.data(), order_id, req.code.data(), req.order_nums);
 
+  // step 6 如果是委买修改用户资金
+  // frozen commitment
+  if (BUY == req.op) {
+    g->OnDelegateBuyOrderDelegate(frozen);
+  }
+
+  // step 7 插入用户委托表
   data_->order_list_.push_back(new OrderInfo(data_->id_, order_id));
-  OrderInfo* order = data_->order_list_[data_->order_list_.size()-1];
+  OrderInfo* order = data_->order_list_[data_->order_list_.size() - 1];
   order->Init(req);
   order->set_frozen(frozen);
 
+  LOG_MSG2("user:%s new order:%d, code:%s, count:%d, frozen=%.2f",
+           data_->name_.data(), order_id, req.code.data(), req.order_nums, frozen);
+
   res.order_id = order_id;
+
+  // step 8 判断交易能否成功
   // check can make a deal
-  if (order->can_deal(stock.rbegin()->second.price)) {
+  StockRealInfo stock_real_info;
+  r = stock_total_info.GetCurrRealMarketInfo(stock_real_info);
+  if (r && order->can_deal(stock_real_info.price)) {
     UnlockThreadrw(data_->lock_);
-    order->MakeADeal(stock.rbegin()->second.price);
+    order->MakeADeal(stock_real_info.price);
     return res;
   }
 
+//  if (order->can_deal(stock.rbegin()->second.price)) {
+//    UnlockThreadrw(data_->lock_);
+//    order->MakeADeal(stock.rbegin()->second.price);
+//    return res;
+//  }
+
+  // step 9 当前不能成交， 等待后续行情
   // cannot make a deal now, register callback
   engine_->AttachObserver(order);
   UnlockThreadrw(data_->lock_);
@@ -499,6 +560,11 @@ SubmitOrderRes UserInfo::SubmitOrder(SubmitOrderReq& req) {
 bool UserInfo::OnBuyOrderDone(OrderInfo* order) {
   StockGroup* g = GetGroupWithNonLock(order->group_id());
   assert(g != NULL);
+
+  // 调整冻结资金
+  double curr_cost = order->amount() + order->commission() + order->transfer_fee();
+  g->OnBuyOrderDone(order->frozen(), curr_cost);
+
   order->set_available_capital(g->available_capital());
 
   // update mysql
@@ -511,18 +577,33 @@ bool UserInfo::OnBuyOrderDone(OrderInfo* order) {
       << order->commission() << ","
       << order->transfer_fee() << ","
       << order->amount() << ","
-      << g->available_capital() << ")";
+      << order->available_capital() << ")";
 
   MYSQL_ROWS_VEC row;
 //  SSEngine* engine = GetStradeShareEngine();
-  if (!engine_->ExcuteStorage(1, oss.str(), row)) {
+  std::string sql = oss.str();
+  if (!engine_->ExcuteStorage(1, sql, row)) {
+    LOG_ERROR2("user:%s update buy order mysql error", data_->name_.data());
+    return false;
+  }
+
+  LOG_MSG2("order_buy_down, excute sql=%s", sql.c_str());
+  // add new FakeStockPosition
+//  assert(!row.empty());
+//  StockPositionId id = atoi(row[0][0].data());
+
+  //TODO 待优化
+  row.clear();
+  static const std::string SELECT_MAX_ID_SQL = "SELECT MAX(holdingId) FROM holding_record";
+  if (!engine_->ExcuteStorage(1, SELECT_MAX_ID_SQL, row)) {
     LOG_ERROR2("user:%s update buy order mysql error", data_->name_.data());
     return false;
   }
 
   // add new FakeStockPosition
-  assert(!row.empty());
+  assert(!row.empty() && !row[0].empty());
   StockPositionId id = atoi(row[0][0].data());
+
   FakeStockPosition fp(id, order);
   GroupStockPosition* gp =
       GetGroupStockPositionWithNonLock(order->group_id(), order->code());
@@ -532,8 +613,11 @@ bool UserInfo::OnBuyOrderDone(OrderInfo* order) {
     gp = &p;
   }
   gp->AddFakeStockPosition(fp);
-  LOG_MSG2("user:%s order:%s finished, holding_id:%d",
-           data_->name_.data(), order->code().data());
+  LOG_MSG2("group_id:%d, available:%d,holdingId:%d",
+           gp->group_id(), gp->available(), id);
+
+  //TODO 自动止损先去掉
+  return true;
 
   // check auto order
   if (order->expected_price() < 1.0) {
@@ -548,7 +632,7 @@ bool UserInfo::OnBuyOrderDone(OrderInfo* order) {
       << "'" << order->code() << "'" << ","
       << order->expected_price() << ","
       << 0 << ","
-      << (int)SELL << ","
+      << (int) SELL << ","
       << order->deal_num() << ","
       << 0 << ")";
   row.clear();
@@ -563,7 +647,7 @@ bool UserInfo::OnBuyOrderDone(OrderInfo* order) {
            data_->name_.data(), order_id, order->code().data(), order->deal_num());
 
   data_->order_list_.push_back(new OrderInfo(data_->id_, order_id, OrderInfo::AUTO_ORDER));
-  OrderInfo* new_order = data_->order_list_[data_->order_list_.size()-1];
+  OrderInfo* new_order = data_->order_list_[data_->order_list_.size() - 1];
   new_order->Init(*order);
 
   gp->Delegate(order->deal_num());
@@ -575,17 +659,19 @@ bool UserInfo::OnSellOrderDone(OrderInfo* order) {
   StockGroup* g = GetGroupWithNonLock(order->group_id());
   assert(g != NULL);
   // update user available capital
-  double profit = order->deal_price()*order->deal_num();
+  double profit = order->deal_price() * order->deal_num();
   profit -= order->stamp_duty();
   profit -= order->transfer_fee();
   profit -= order->commission();
   g->OnSellOrderDone(profit);
   order->set_available_capital(g->available_capital());
 
+  LOG_MSG2("OnSell Total:%.2f", profit);
+
   // pick FakeStockPosition
   FakeStockPositionList fp_list;
   GroupStockPosition* gp =
-        GetGroupStockPositionWithNonLock(order->group_id(), order->code());
+      GetGroupStockPositionWithNonLock(order->group_id(), order->code());
   if (NULL == gp) {
     LOG_ERROR2("user:%s not find stock:%s group:%d position",
                data_->name_.data(), order->code().data(), order->group_id());
@@ -597,21 +683,35 @@ bool UserInfo::OnSellOrderDone(OrderInfo* order) {
   double cost = 0.0;
   std::ostringstream oss;
   for (size_t i = 0; i < fp_list.size(); ++i) {
-    oss << fp_list[i].id() << ":" << fp_list[i].count() << ",";
     OrderInfo* order = fp_list[i].order();
-    if (fp_list[i].count()) {
-      cost +=
-          order->amount() * ((double)fp_list[i].count()/order->deal_num());
+    int remain = fp_list[i].last_count() - fp_list[i].count();
+    fp_list[i].set_last_count(fp_list[i].count());
+    double ratio = (1.0 * remain / order->deal_num());
+    double curr_fp_amount = 0.0;
+    double curr_fp_commission = 0.0;
+    double curr_fp_transfee = 0.0;
+    if (remain > 0) {
+      curr_fp_amount = order->amount() * ratio;
+      curr_fp_commission = order->commission() * ratio;
+      curr_fp_transfee = order->transfer_fee() * ratio;
     } else {
-      cost += order->amount();
+      curr_fp_amount = order->amount();
+      curr_fp_commission = order->commission();
+      curr_fp_transfee = order->transfer_fee();
     }
+    LOG_MSG2("remain:%d, ratio:%.2f, curr_fp_amount:%.2f,curr_fp_commission:%.2f,curr_fp_transfee:%.2f",
+             remain, ratio, curr_fp_amount, curr_fp_commission, curr_fp_transfee);
+    cost += curr_fp_amount + curr_fp_commission + curr_fp_transfee;
+    oss << fp_list[i].id() << ":" << fp_list[i].count() << ",";
   }
+
   profit -= cost;
   order->set_profit(profit);
+  LOG_MSG2("OnSell Cost:%.2f, Profit:%.2f", cost, profit);
 
   std::string h = oss.str();
   oss.str("");
-  h.erase(h.size()-1);
+  h.erase(h.size() - 1);
 
   oss << "CALL `proc_SellOrderDone`("
       << order->id() << ","
@@ -620,7 +720,7 @@ bool UserInfo::OnSellOrderDone(OrderInfo* order) {
       << order->stamp_duty() << ","
       << order->commission() << ","
       << order->transfer_fee() << ","
-      << profit << ","
+      << order->profit() << ","
       << order->available_capital() << ","
       << "'" << h << "')";
 
@@ -654,12 +754,11 @@ void UserInfo::OnOrderDone(OrderInfo* order) {
 Status::State UserInfo::OnCancelBuyOrder(const OrderInfo* order) {
   base_logic::WLockGd lock(data_->lock_);
 
-  // update user available capital and frozen capital
+  // step 1 update user available capital and frozen capital
   StockGroup* g = GetGroupWithNonLock(order->group_id());
   assert(g != NULL);
-  g->OnCancelBuyOrder(order->frozen());
 
-  // update mysql
+  // step 2 update mysql
   // 1. update delegation_record
   // 2. update user available and frozen capital
   std::ostringstream oss;
@@ -668,24 +767,31 @@ Status::State UserInfo::OnCancelBuyOrder(const OrderInfo* order) {
     LOG_ERROR2("user:%s cancel buy order mysql error", data_->name_.data());
     return Status::MYSQL_ERROR;
   }
+
+  // step 3 更新内存
+  g->OnCancelBuyOrder(order->frozen());
+
   return Status::SUCCESS;
 }
 
 Status::State UserInfo::OnCancelSellOrder(const OrderInfo* order) {
   base_logic::WLockGd lock(data_->lock_);
 
+  // step 1 获取组合
   GroupStockPosition* p =
       GetGroupStockPositionWithNonLock(order->group_id(), order->code());
   assert(p != NULL);
-  p->OnOrderCancel(order->order_num());
 
-  // update delegation_record status
+  // step 2 update delegation_record status
   std::ostringstream oss;
   oss << "CALL proc_CancelSaleDelegation(" << order->id() << ")";
   if (!engine_->WriteData(oss.str())) {
     LOG_ERROR2("user:%s cancel sell order mysql error", data_->name_.data());
     return Status::MYSQL_ERROR;
   }
+
+  // step 3 修改内存
+  p->OnOrderCancel(order->order_num());
   return Status::SUCCESS;
 }
 
@@ -697,7 +803,7 @@ Status::State UserInfo::CancleOrder(OrderInfo* order) {
   Status::State status;
   order->OnOrderCancel();
   if (BUY == order->operation()) {
-     status = OnCancelBuyOrder(order);
+    status = OnCancelBuyOrder(order);
   }
 
   if (SELL == order->operation()) {
@@ -710,7 +816,7 @@ Status::State UserInfo::OnCancelOrder(OrderId order_id) {
   Status::State status;
   OrderList::iterator order = data_->order_list_.end();
   for (OrderList::iterator it = data_->order_list_.begin();
-      data_->order_list_.end() != it; ++it) {
+       data_->order_list_.end() != it; ++it) {
     if ((*it)->id() == order_id) {
       order = it;
       break;
@@ -728,9 +834,9 @@ Status::State UserInfo::OnCancelOrder(OrderId order_id) {
   LOG_DEBUG2("user:%s cancle order:%d", data_->name_.data(), (*order)->id());
   status = CancleOrder(*order);
 
-  // remove order
-  delete *order;
-  data_->order_list_.erase(order);
+  // TODO remove order
+  //  delete *order;
+  //  data_->order_list_.erase(order);
   return status;
 }
 
@@ -745,17 +851,21 @@ Status::State UserInfo::OnModifyInitCapital(GroupId group_id, double capital) {
   if (capital < 0.0) {
     return Status::FAILED;
   }
-  g->add_init_capital(capital);
 
+  double curr_init_captial = g->init_capital() + capital;
+  double curr_available_capital = g->available_capital() + capital;
   std::ostringstream oss;
   oss << "UPDATE `group_info` "
-      << "SET `initCapital` = " << g->init_capital() << ","
-      << "`availableCapital` = " << g->available_capital()
+      << "SET `initCapital` = " << curr_init_captial << ","
+      << "`availableCapital` = " << curr_available_capital
       << " WHERE `groupId` = " << g->id() << " AND `userId` = " << data_->id_;
   if (!engine_->WriteData(oss.str())) {
     LOG_ERROR2("user:%s modify init capital mysql error", data_->name_.data());
     return Status::MYSQL_ERROR;
   }
+  g->add_init_capital(capital);
+  LOG_DEBUG2("user_id=%d, group_id=%d, init_capital=%.2f, available_captial=%.2f",
+             data_->id_, g->id(), g->init_capital(), g->available_capital());
   return Status::SUCCESS;
 }
 

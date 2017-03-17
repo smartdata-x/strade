@@ -85,14 +85,15 @@ class OrderDealTimeFilter : public OrderFilter {
 
 class OrderProfitFilter : public OrderFilter {
  public:
-  OrderProfitFilter(double min, double max)
-      : min_(min),
-        max_(max) {}
-  ~OrderProfitFilter() {}
+  virtual ~OrderProfitFilter() {}
   bool filter(const OrderInfo& order);
- private:
-  double min_;
-  double max_;
+};
+
+class OrderLossFilter : public OrderFilter {
+ public:
+  virtual ~OrderLossFilter() {}
+  bool filter(const OrderInfo& order);
+
 };
 
 } /* namespace strade_user */

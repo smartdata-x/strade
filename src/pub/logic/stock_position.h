@@ -49,53 +49,59 @@ class FakeStockPosition : public base_logic::AbstractDao {
   void BindOrder(OrderInfo* order) { data_->order_ = order; }
  private:
   void Deserialize();
-public:
+ public:
   StockPositionId id() const { return data_->id_; }
   OrderId order_id() const { return data_->order_id_; }
   OrderInfo* order() const { return data_->order_; }
   uint32 count() const { return data_->count_; }
+  uint32 last_count() const { return data_->last_count_; }
+  void set_last_count(uint32 count) { data_->last_count_ = count; }
+
   bool initialized() const { return data_->initialized_; }
   int32 sell(int32 n) {
     int32 rc = (data_->count_ -= n);
-    if (data_->count_ < 0) data_->count_;
+    if (data_->count_ < 0) {
+      data_->count_ = 0;
+    }
     return rc;
   }
  private:
   class Data {
-     public:
-      Data()
-          : refcount_(1),
-            id_(-1),
-            order_id_(0),
-            count_(0),
-            order_(NULL),
-            initialized_(false) {
-      }
+   public:
+    Data()
+        : refcount_(1),
+          id_(-1),
+          order_id_(0),
+          count_(0),
+          last_count_(0),
+          order_(NULL),
+          initialized_(false) {
+    }
 
-     public:
-      StockPositionId id_;
-      OrderId order_id_;
-      int32 count_;
-      OrderInfo* order_;
-      bool initialized_;
+   public:
+    StockPositionId id_;
+    OrderId order_id_;
+    int32 count_;
+    uint32 last_count_;
+    OrderInfo* order_;
+    bool initialized_;
 
-      void AddRef() {
-        __sync_fetch_and_add(&refcount_, 1);
-      }
+    void AddRef() {
+      __sync_fetch_and_add(&refcount_, 1);
+    }
 
-      void Release() {
-        __sync_fetch_and_sub(&refcount_, 1);
-        if (!refcount_)
-          delete this;
-      }
+    void Release() {
+      __sync_fetch_and_sub(&refcount_, 1);
+      if (!refcount_)
+        delete this;
+    }
 
-     private:
-      int refcount_;
-    };
+   private:
+    int refcount_;
+  };
  private:
   Data* data_;
 };
-
 
 class GroupStockPosition : public base_logic::AbstractDao {
  public:
