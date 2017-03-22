@@ -128,9 +128,9 @@ class StockRealInfo {
 
   }
 
-  static const double MIN_PRICE = 1.00;
-  static const double MIN_PRICE_RISE = -11.00;
-  static const double MAX_PRICE_RISE = 45.00;
+  constexpr static const double MIN_PRICE = 1.00;
+  constexpr static const double MIN_PRICE_RISE = -11.00;
+  constexpr static const double MAX_PRICE_RISE = 45.00;
 
   bool Deserialize(const StrVec& data);
   std::string Serialized();

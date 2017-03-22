@@ -10,7 +10,7 @@
 
 #include <sstream>
 
-namespace base_logic{
+namespace base_logic {
 
 void* SomeUtils::GetLibraryFunction(const std::string& library_name,
                                     const std::string& func_name) {
@@ -20,7 +20,7 @@ void* SomeUtils::GetLibraryFunction(const std::string& library_name,
 
   if (handle_lancher == NULL) {
     LOG_ERROR2("Cant't load path %s", library_name.c_str());
-    return false;
+    return NULL;
   }
 
   engine = basic::get_function_pointer(handle_lancher, func_name.c_str());
@@ -32,12 +32,12 @@ void* SomeUtils::GetLibraryFunction(const std::string& library_name,
   return engine;
 }
 
-void LogicUnit::SendMessageBySize(const int socket, std::string& json){
+void LogicUnit::SendMessageBySize(const int socket, std::string& json) {
 
   uint32_t len = json.length();
-  LOG_DEBUG2("\n%s", json.c_str());
+  LOG_DEBUG2("\n%s, size=%d", json.c_str(), json.size());
   LOG_DEBUG2("length:%d", len);
-  unsigned char *p_to_len = (unsigned char *)(&len);
+  unsigned char* p_to_len = (unsigned char*) (&len);
   std::stringstream os;
   os << p_to_len[0] << p_to_len[1] << p_to_len[2] << p_to_len[3] << json;
   LOG_DEBUG2("length:%d %d %d %d", p_to_len[0], p_to_len[1], p_to_len[2], p_to_len[3]);

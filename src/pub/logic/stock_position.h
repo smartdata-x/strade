@@ -115,6 +115,7 @@ class GroupStockPosition : public base_logic::AbstractDao {
  public:
   bool InitFakeStockPosition();
   bool AddFakeStockPosition(const FakeStockPosition& p);
+  bool BeforeSellCheck(uint32 n);
   bool Delegate(uint32 n);
   void OnOrderDone(uint32 n, FakeStockPositionList& fp_list);
   void OnOrderCancel(uint32 n);
@@ -132,6 +133,7 @@ class GroupStockPosition : public base_logic::AbstractDao {
   uint32 available() const { return data_->available_; }
   double cost() const;
   double total_cost() const;
+  double bought_fee() const;
   bool initialized() const { return data_->initialized_; }
  private:
   class Data {

@@ -29,7 +29,7 @@ class RedisController : public DataEngine {
         .GetDicEngine();
     if (NULL == redis_engine) {
       LOG_ERROR("GetDicEngine redis_engine error");
-      return false;
+      return NULL;
     }
     return redis_engine;
   }

@@ -109,9 +109,15 @@ double GroupStockPosition::cost() const {
   double sum = 0.0;
   size_t count = 0;
   for (size_t i = 0; i < data_->fake_stock_position_list_.size(); ++i) {
-    count += data_->fake_stock_position_list_[i].count();
-    sum += data_->fake_stock_position_list_[i].order()->deal_price() *
-        data_->fake_stock_position_list_[i].count();
+    FakeStockPosition& curr_fp_p = data_->fake_stock_position_list_[i];
+
+    count += curr_fp_p.count();
+    sum += curr_fp_p.order()->deal_price() * curr_fp_p.count();
+
+    // 费用
+    sum += curr_fp_p.order()->commission();
+    sum += curr_fp_p.order()->stamp_duty();
+    sum += curr_fp_p.order()->transfer_fee();
   }
 
   double ret = 0.0;
@@ -129,6 +135,14 @@ double GroupStockPosition::total_cost() const {
   return sum;
 }
 
+double GroupStockPosition::bought_fee() const {
+  double bought_fee = 0.0;
+  for (size_t i = 0; i < data_->fake_stock_position_list_.size(); ++i) {
+    bought_fee += data_->fake_stock_position_list_[i].order()->fee();
+  }
+  return bought_fee;
+}
+
 bool GroupStockPosition::AddFakeStockPosition(const FakeStockPosition& p) {
   for (size_t i = 0; i < data_->fake_stock_position_list_.size(); ++i) {
     if (p.id() == data_->fake_stock_position_list_[i].id()) {
@@ -139,6 +153,13 @@ bool GroupStockPosition::AddFakeStockPosition(const FakeStockPosition& p) {
   data_->count_ += p.count();
   data_->available_ += p.count();
 
+  return true;
+}
+
+bool GroupStockPosition::BeforeSellCheck(uint32 n) {
+  if (data_->available_ < n) {
+    return false;
+  }
   return true;
 }
 

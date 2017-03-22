@@ -21,6 +21,13 @@ using strade_share::SSEngine;
 
 namespace strade_user {
 
+// 组合的历史收益率
+struct GroupHistYields {
+
+  double yield_;
+};
+
+typedef std::map<std::string, GroupHistYields> GROUP_HIST_YIELD_MAP;
 class StockGroup : public base_logic::AbstractDao {
  public:
   static SSEngine* engine_;
@@ -74,8 +81,19 @@ class StockGroup : public base_logic::AbstractDao {
   void OnSellOrderDone(double amount) {
     data_->available_capital_ += amount;
   }
+
+  GROUP_HIST_YIELD_MAP GetGroupAllHistYieldMap() const {
+    return data_->group_hist_yield_map_;
+  }
+
+  bool AddGroupHistYield(const std::string& date, GroupHistYields& yield) {
+    data_->group_hist_yield_map_.insert(GROUP_HIST_YIELD_MAP::value_type(date, yield));
+    return true;
+  }
+
  private:
   void Deserialize();
+
  public:
   void set_id(UserId id) { data_->id_ = id; }
   UserId id() const { return data_->id_; }
@@ -91,6 +109,7 @@ class StockGroup : public base_logic::AbstractDao {
   double init_capital() const { return data_->init_capital_; }
   double frozen_capital() const { return data_->frozen_capital_; }
   double available_capital() const { return data_->available_capital_; }
+
  public:
   class Data {
    public:
@@ -117,6 +136,9 @@ class StockGroup : public base_logic::AbstractDao {
 
     StockCodeList stock_list_;
     StockCodeSet stock_set_;
+
+    // 组合的历史收益率
+    GROUP_HIST_YIELD_MAP group_hist_yield_map_;
 
     void AddRef() {
       __sync_fetch_and_add(&refcount_, 1);

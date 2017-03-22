@@ -77,28 +77,19 @@ bool CreateGroupReq::Deserialize(DictionaryValue& dict) {
     return false;
   }
 
-  if (!dict.GetString(L"code_list", &str)) {
-    LOG_ERROR("NOT FIND code_list");
+  if (!dict.GetString(L"init_capital", &str)) {
+    LOG_ERROR("NOT FIND init_capital");
     return false;
   }
+  str.erase(str.size() - 1);
 
-  std::string code;
-  std::istringstream iss(str);
-  while (std::getline(iss, code, ',')) {
-    if (!code.empty()) {
-      code_list.push_back(code);
-    }
-  }
   return true;
 }
 
 void CreateGroupReq::Dump(std::ostringstream& oss) {
   oss << "\t\t--------- CreateGroupReq ---------" << std::endl;
   OSS_WRITE(group_name);
-  oss << "\t\tcode_list = ";
-  for (size_t i = 0; i < code_list.size(); ++i) {
-    oss << code_list[i] << ",";
-  }
+  OSS_WRITE(init_capital);
 }
 
 bool CreateGroupRes::Serialize(DictionaryValue& dict) {
@@ -433,6 +424,7 @@ void QueryStatementReq::Dump(std::ostringstream& oss) {
 
 bool QueryStatementRes::StatementRecord::Serialize(DictionaryValue& dict) {
   dict.SetString(L"code", code);
+  dict.SetString(L"name", name);
   dict.SetBigInteger(L"order_operation", op);
   dict.SetReal(L"order_price", order_price);
   dict.SetBigInteger(L"order_nums", order_nums);
@@ -441,6 +433,7 @@ bool QueryStatementRes::StatementRecord::Serialize(DictionaryValue& dict) {
   dict.SetReal(L"transfer_fee", transfer_fee);
   dict.SetReal(L"amount", amount);
   dict.SetReal(L"available_capital", available_capital);
+  dict.SetBigInteger(L"deal_time", deal_time);
   return true;
 }
 
@@ -505,6 +498,15 @@ void SubmitOrderReq::Dump(std::ostringstream& oss) {
   OSS_WRITE((int) op);
 }
 
+bool SubmitOrderRes::Serialize(DictionaryValue& dict) {
+  dict.SetBigInteger(L"order_id", order_id);
+  dict.SetString(L"code", code);
+  dict.SetString(L"name", name);
+  dict.SetString(L"error_msg", status.to_string());
+  return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 bool SubmitMultiOrderReq::Deserialize(DictionaryValue& dict) {
   int64 t;
   if (!dict.GetBigInteger(L"group_id", &t)) {
@@ -532,16 +534,18 @@ bool SubmitMultiOrderReq::Deserialize(DictionaryValue& dict) {
     return false;
   }
   std::string order_price;
-  iss.str(price_strs);
-  while (std::getline(iss, order_price, ',')) {
+  std::istringstream pss(price_strs);
+  while (std::getline(pss, order_price, ',')) {
+    LOG_ERROR2("---%s", order_price.c_str());
     if (!order_price.empty()) {
-      price_list.push_back(atof(order_price.data()));
+      price_list.push_back(atof(order_price.c_str()));
     }
   }
 
   // assert stock_list.size() == price_list.size();
   if (code_list.size() != price_list.size()) {
-    LOG_ERROR("multi order req, code_list.size() != price_list.size()");
+    LOG_ERROR2("multi order req, code_list.size() != price_list.size() %d %d",
+               code_list.size(), price_list.size());
     return false;
   }
   size_t total_order_num = code_list.size();
@@ -564,9 +568,15 @@ bool SubmitMultiOrderReq::Deserialize(DictionaryValue& dict) {
   op = (OrderOperation) t;
 
   // construct single order
+  SubmitOrderReq req;
+  req.group_id = group_id;
+  req.expected_price = expected_price;
+  req.order_nums = order_nums;
+  req.op = op;
   for (size_t i = 0; i < total_order_num; ++i) {
-    SubmitOrderReq req;
-
+    req.code = code_list[i];
+    req.order_price = price_list[i];
+    single_order_vec.push_back(req);
   }
 
   return true;
@@ -574,19 +584,35 @@ bool SubmitMultiOrderReq::Deserialize(DictionaryValue& dict) {
 
 void SubmitMultiOrderReq::Dump(std::ostringstream& oss) {
   oss << "\t\t--------- SubmitMultiOrderReq ---------" << std::endl;
-  OSS_WRITE(group_id);
-  OSS_WRITE(code_strs);
-  OSS_WRITE(price_strs);
-  OSS_WRITE(expected_price);
-  OSS_WRITE(order_nums);
-  OSS_WRITE((int) op);
-}
+//  OSS_WRITE(group_id);
+//  OSS_WRITE(code_strs);
+//  OSS_WRITE(price_strs);
+//  OSS_WRITE(expected_price);
+//  OSS_WRITE(order_nums);
+//  OSS_WRITE((int) op);
 
-bool SubmitOrderRes::Serialize(DictionaryValue& dict) {
-  dict.SetBigInteger(L"order_id", order_id);
+  for (auto& order : single_order_vec) {
+    order.Dump(oss);
+  }
+}
+bool SubmitMultiOrderRes::Serialize(DictionaryValue& dict) {
+  ListValue* unit_list = new ListValue();
+  for (size_t i = 0; i < succ_mult_list.size(); ++i) {
+    DictionaryValue* unit = new DictionaryValue();
+    succ_mult_list[i].Serialize(*unit);
+    unit_list->Append(unit);
+  }
+  dict.Set(L"success_list", unit_list);
+
+  unit_list = new ListValue();
+  for (size_t i = 0; i < fail_mult_list.size(); ++i) {
+    DictionaryValue* unit = new DictionaryValue();
+    fail_mult_list[i].Serialize(*unit);
+    unit_list->Append(unit);
+  }
+  dict.Set(L"fail_List", unit_list);
   return true;
 }
-
 ///////////////////////////////////////////////////////////////////////////////
 bool GroupStockHoldingReq::Deserialize(DictionaryValue& dict) {
   int64 t;
@@ -718,6 +744,52 @@ bool ModifyInitCapitalRes::Serialize(DictionaryValue& dict) {
   dict.SetReal(L"capital", capital);
   return true;
 }
+
+bool ModifyGroupNameReq::Deserialize(DictionaryValue& dict) {
+  int64 t;
+  std::string str;
+  if (!dict.GetBigInteger(L"group_id", &t)) {
+    LOG_ERROR("NOT FIND group_id");
+    return false;
+  }
+  group_id = t;
+
+  std::string tmp;
+  if (!dict.GetString(L"group_name", &tmp)) {
+    LOG_ERROR("NOT FIND group_name");
+    return false;
+  }
+  base::BasicUtil::UrlDecode(tmp, group_name);
+  return true;
+}
+
+void ModifyGroupNameReq::Dump(std::ostringstream& oss) {
+  oss << "\t\t--------- ModifyGroupNameReq ---------" << std::endl;
+  OSS_WRITE(group_id);
+  OSS_WRITE(group_name);
+}
+
+bool ModifyGroupNameRes::Serialize(DictionaryValue& dict) {
+  dict.SetString(L"group_name", group_name);
+  return true;
+}
+
+bool DelGroupReq::Deserialize(DictionaryValue& dict) {
+  int64 t;
+  if (!dict.GetBigInteger(L"group_id", &t)) {
+    LOG_ERROR("NOT FIND group_id");
+    return false;
+  }
+  group_id = t;
+
+  return true;
+}
+
+void DelGroupReq::Dump(std::ostringstream& oss) {
+  oss << "\t\t--------- DelGroupReq ---------" << std::endl;
+  OSS_WRITE(group_id);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 std::string Status::to_string() {
@@ -735,8 +807,12 @@ std::string Status::to_string() {
     case STOCK_NOT_EXIST:return "stock not exit";
     case CAPITAL_NOT_ENOUGH:return "capital not enough";
     case NO_HOLDING_STOCK:return "no holding stock";
+    case NOT_ENOUGH_HOLDING_NUM: return "not enough holding num";
     case ORDER_NOT_EXIST:return "order not exist";
     case NOT_IN_ORDER_TIME:return "not in order time";
+    case ORDER_NUMS_INVALID: return "order nums invalid";
+    case ORDER_PRICE_INVALID: return "order price invalid";
+    case STOCK_HAS_BEEN_SUSPEND: return "stock has been suspend";
     default:return "UNKNOWN error";
   }
 }

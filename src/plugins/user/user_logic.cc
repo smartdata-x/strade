@@ -126,7 +126,7 @@ bool UserLogic::SendResponse(int socket, ResHead& msg) {
   scoped_ptr<ValueSerializer> engine(
       ValueSerializer::Create(base_logic::IMPL_JSON, &json_msg));
   engine->Serialize(dict);
-  LOG_DEBUG2("json_msg:\n%s, size:%d", json_msg.data(), json_msg.size());
+//  LOG_DEBUG2("json_msg:\n%s, size:%d", json_msg.data(), json_msg.size());
   send_message_by_size(socket, json_msg);
   return true;
 }
@@ -187,15 +187,24 @@ bool UserLogic::OnUserMessage(struct server* srv, const int socket,
       break;
     case QueryStatementReq::ID:OnQueryStatement(socket, *dict);
       break;
+      // 111 单笔委托买卖
     case SubmitOrderReq::ID:OnSubmitOrder(socket, *dict);
+      break;
+      // 131 批量买卖
+    case SubmitMultiOrderReq::ID:OnSubmitMultiOrder(socket, *dict);
       break;
     case AvailableStockCountReq::ID:OnAvailableStockCount(socket, *dict);
       break;
     case CancelOrderReq::ID:OnCancelOrder(socket, *dict);
       break;
+      // 115 盈利亏损笔数
     case ProfitAndLossOrderNumReq::ID:OnProfitAndLossOrderNum(socket, *dict);
       break;
     case ModifyInitCapitalReq::ID:OnModifyInitCapital(socket, *dict);
+      break;
+    case ModifyGroupNameReq::ID : OnModifyGroupName(socket, *dict);
+      break;
+    case DelGroupReq::DEL_GROUP_ID: OnDelGroup(socket, *dict);
       break;
     default:Status status = Status::UNKNOWN_OPCODE;
       SendResponse(socket, status);
@@ -257,7 +266,7 @@ void UserLogic::OnCreateGroup(int socket, DictionaryValue& dict) {
     }
     GroupId gid = 0;
     res.status.state =
-        user->CreateGroup(msg.group_name, msg.code_list, &gid);
+        user->CreateGroup(msg.group_name, msg.init_capital, &gid);
     res.group_id = gid;
   } while (0);
 
@@ -359,6 +368,7 @@ void UserLogic::OnQueryStock(int socket, DictionaryValue& dict) {
   msg.StartDump(oss);
   LOG_DEBUG2("%s", oss.str().data());
 
+  bool r = false;
   StockTotalInfo info;
 
   do {
@@ -391,8 +401,8 @@ void UserLogic::OnQueryStock(int socket, DictionaryValue& dict) {
       s.visit_heat = info.get_visit_num();
       s.price = ri.price;
       s.change = 0.0;
-      if (ri.open != 0.0) {
-        s.change = (ri.price - ri.open) / ri.open * 100;
+      if (ri.close != 0.0) {
+        s.change = (s.price - ri.close) / ri.close * 100;
       }
       s.volume = ri.vol;
       s.industry = info.get_industry();
@@ -685,17 +695,25 @@ void UserLogic::OnQueryStatement(int socket, DictionaryValue& dict) {
   filters.push_back(new OrderStatusFilter(FINISHED));
   OrderList orders = user->FindOrders(filters);
 
+  StockTotalInfo stock_total_info;
   for (size_t i = 0; i < orders.size(); ++i) {
     QueryStatementRes::StatementRecord s;
     s.code = orders[i]->code();
+    if (engine->GetStockTotalInfoByCode(orders[i]->code(), stock_total_info)) {
+      s.name = stock_total_info.get_stock_name();
+    }
     s.op = orders[i]->operation();
     s.order_price = orders[i]->deal_price();
     s.order_nums = orders[i]->deal_num();
     s.commission = orders[i]->commission();
     s.stamp_duty = orders[i]->stamp_duty();
     s.transfer_fee = orders[i]->transfer_fee();
-    s.amount = orders[i]->amount();
+    s.amount = orders[i]->amount() +
+        orders[i]->transfer_fee() +
+        orders[i]->stamp_duty() +
+        orders[i]->commission();
     s.available_capital = orders[i]->available_capital();
+    s.deal_time = orders[i]->deal_time();
     res.statement_list.push_back(s);
   }
   SendResponse(socket, res);
@@ -738,9 +756,8 @@ void UserLogic::OnSubmitOrder(int socket, DictionaryValue& dict) {
 
 void UserLogic::OnSubmitMultiOrder(int socket, DictionaryValue& dict) {
   SubmitMultiOrderReq msg;
-  SubmitOrderRes res;
+  SubmitMultiOrderRes res;
 
-  res.order_id = -1;
   // check order time
 #ifndef DEBUG_TEST
   StockUtil* util = StockUtil::Instance();
@@ -766,7 +783,92 @@ void UserLogic::OnSubmitMultiOrder(int socket, DictionaryValue& dict) {
   msg.StartDump(oss);
   LOG_DEBUG2("%s", oss.str().data());
 
-  UserInfo* user = engine->GetUser(msg.user_id);
+  bool r = false;
+
+  do {
+    UserInfo* user = engine->GetUser(msg.user_id);
+    if (NULL == user) {
+      res.status.state = Status::USER_NOT_EXIST;
+      break;
+    }
+
+    std::vector<SubmitOrderReq>::iterator it = msg.single_order_vec.begin();
+    SubmitOrderRes single_order_result;
+    for (; it != msg.single_order_vec.end(); ++it) {
+      //single_order_result.order_id = -1;
+      single_order_result = user->SubmitOrder(*it);
+      if (Status::SUCCESS == single_order_result.status.state) {
+        res.succ_mult_list.push_back(single_order_result);
+      } else {
+        res.fail_mult_list.push_back(single_order_result);
+      }
+    }
+  } while (0);
+
+  SendResponse(socket, res);
+}
+
+void UserLogic::OnModifyGroupName(int socket, DictionaryValue& dict) {
+  ModifyGroupNameReq msg;
+  ModifyGroupNameRes res;
+  res.status.state = Status::SUCCESS;
+  do {
+    if (!msg.StartDeserialize(dict)) {
+      res.status.state = Status::ERROR_MSG;
+      break;
+    }
+
+    std::ostringstream oss;
+    msg.StartDump(oss);
+    LOG_DEBUG2("%s", oss.str().data());
+
+    UserInfo* user = engine->GetUser(msg.user_id);
+    if (NULL == user) {
+      res.status.state = Status::USER_NOT_EXIST;
+      break;
+    }
+
+    StockGroup* g = user->GetGroup(msg.group_id);
+    if (NULL == g) {
+      res.status.state = Status::GROUP_NOT_EXIST;
+      break;
+    }
+
+    res.status.state = user->OnModifyGroupName(msg, *g);
+    res.group_name = msg.group_name;
+  } while (0);
+
+  SendResponse(socket, res);
+}
+
+void UserLogic::OnDelGroup(int socket, DictionaryValue& dict) {
+  DelGroupReq msg;
+  ResHead res;
+  res.status.state = Status::SUCCESS;
+  do {
+    if (!msg.StartDeserialize(dict)) {
+      res.status.state = Status::ERROR_MSG;
+      break;
+    }
+
+    std::ostringstream oss;
+    msg.StartDump(oss);
+    LOG_DEBUG2("%s", oss.str().data());
+
+    UserInfo* user = engine->GetUser(msg.user_id);
+    if (NULL == user) {
+      res.status.state = Status::USER_NOT_EXIST;
+      break;
+    }
+
+    StockGroup* g = user->GetGroup(msg.group_id);
+    if (NULL == g) {
+      res.status.state = Status::GROUP_NOT_EXIST;
+      break;
+    }
+
+    res.status.state = user->OnDelGroup(msg, *g);
+  } while (0);
 
   SendResponse(socket, res);
 }

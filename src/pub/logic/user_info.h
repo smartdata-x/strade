@@ -50,8 +50,8 @@ class UserInfo : public base_logic::AbstractDao {
  public:
   bool Init();
   Status::State CreateGroup(const std::string& name,
-                      StockCodeList& code_list,
-                      GroupId* id);
+                            double init_capital,
+                            GroupId* id);
 
   StockGroup* GetGroup(GroupId group_id);
 
@@ -65,12 +65,15 @@ class UserInfo : public base_logic::AbstractDao {
   Status::State GetGroupStock(GroupId group_id, StockCodeList& stocks);
   // include default gruop
   GroupStockPositionList GetHoldingStocks();
+  void DelGroup(GroupId group_id);
 
   OrderList FindOrders(const OrderFilterList& filters);
   SubmitOrderRes SubmitOrder(SubmitOrderReq& req);
   void OnOrderDone(OrderInfo* order);
   Status::State OnCancelOrder(OrderId order_id);
   Status::State OnModifyInitCapital(GroupId group_id, double capital);
+  Status::State OnModifyGroupName(ModifyGroupNameReq& req, StockGroup& group);
+  Status::State OnDelGroup(DelGroupReq& req, StockGroup& group);
   void OnCloseMarket();
  private:
   Status::State CancleOrder(OrderInfo* order);
@@ -81,10 +84,10 @@ class UserInfo : public base_logic::AbstractDao {
   bool InitStockGroup();
   bool InitStockPosition();
   bool InitOrder();
-  bool InitPendingOrder();
-  bool InitFinishedOrder();
   void BindOrder();
-  Status::State OnBuyOrder(SubmitOrderReq& req, double* frozen);
+  Status::State BeforeBuyCheck(SubmitOrderReq& req, double* frozen);
+  Status::State OnBuyOrder(StockGroup& group, double frozen);
+  Status::State BeforeSellCheck(SubmitOrderReq& req);
   Status::State OnSellOrder(SubmitOrderReq& req);
   bool OnBuyOrderDone(OrderInfo* order);
   bool OnSellOrderDone(OrderInfo* order);
@@ -134,7 +137,8 @@ class UserInfo : public base_logic::AbstractDao {
     GroupStockPositionList stock_position_list_;   // 当前持仓
     OrderList order_list_;                    // 委托
 
-    threadrw_t *lock_;
+
+    threadrw_t* lock_;
     void AddRef() {
       __sync_fetch_and_add(&refcount_, 1);
     }

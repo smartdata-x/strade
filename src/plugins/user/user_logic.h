@@ -72,13 +72,14 @@ class UserLogic {
   void OnCancelOrder(int socket, DictionaryValue& dict);
   void OnProfitAndLossOrderNum(int socket, DictionaryValue& dict);
   void OnModifyInitCapital(int socket, DictionaryValue& dict);
+  void OnSubmitMultiOrder(int socket, DictionaryValue& dict);
+  void OnModifyGroupName(int socket, DictionaryValue& dict);
+  void OnDelGroup(int socket, DictionaryValue& dict);
 
   void ProcessClose();
 
   bool SendResponse(int socket, Status& status);
   bool SendResponse(int socket, ResHead& msg);
- private:
-  void OnSubmitMultiOrder(int socket, DictionaryValue& dict);
 };
 
 } /* namespace strade_user */

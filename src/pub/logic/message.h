@@ -48,21 +48,25 @@ struct ReqHead {
 
 struct Status {
   enum State {
-    SUCCESS,
-    FAILED,
-    ERROR_MSG,
-    UNKNOWN_OPCODE,
-    USER_NOT_EXIST,
-    INVALID_TOKEN,
-    GROUP_NAME_ALREADAY_EXIST,
-    MYSQL_ERROR,
-    GROUP_NOT_EXIST,
-    STOCK_NOT_IN_GROUP,
-    STOCK_NOT_EXIST,
-    CAPITAL_NOT_ENOUGH,
-    NO_HOLDING_STOCK,
-    ORDER_NOT_EXIST,
-    NOT_IN_ORDER_TIME
+    SUCCESS,                            // 成功
+    FAILED,                             // 失败
+    ERROR_MSG,                          // 内部错误
+    UNKNOWN_OPCODE,                     // 操作码非法
+    USER_NOT_EXIST,                     // 用户不存在
+    INVALID_TOKEN,                      // token 非法
+    GROUP_NAME_ALREADAY_EXIST,          // 组合名字已经存在
+    MYSQL_ERROR,                        // mysql 错误
+    GROUP_NOT_EXIST,                    // 组合不存在
+    STOCK_NOT_IN_GROUP,                 // 组合不包括该股票
+    STOCK_NOT_EXIST,                    // 股票不存在
+    CAPITAL_NOT_ENOUGH,                 // 可用资金不足
+    NO_HOLDING_STOCK,                   // 没有该股票持仓
+    NOT_ENOUGH_HOLDING_NUM,             // 持仓数量不足
+    ORDER_NOT_EXIST,                    // 委托记录不存在
+    NOT_IN_ORDER_TIME,                  // 不在交易时间
+    ORDER_NUMS_INVALID,                 // 委托数量非法
+    ORDER_PRICE_INVALID,                // 委托价格非法
+    STOCK_HAS_BEEN_SUSPEND,             // 该股票以及停牌
   };
 
   Status() : state(SUCCESS) {}
@@ -86,7 +90,7 @@ struct CreateGroupReq : ReqHead {
   const static uint32 ID = 101;
 
   std::string group_name;
-  StockCodeList code_list;
+  double init_capital;
   bool Deserialize(DictionaryValue& dict);
   void Dump(std::ostringstream& oss);
 };
@@ -299,6 +303,7 @@ struct QueryStatementReq : ReqHead {
 struct QueryStatementRes : ResHead {
   struct StatementRecord {
     std::string code;
+    std::string name;
     OrderOperation op;
     double order_price;
     uint32 order_nums;
@@ -307,6 +312,7 @@ struct QueryStatementRes : ResHead {
     double transfer_fee;
     double amount;
     double available_capital;
+    time_t deal_time;
     bool Serialize(DictionaryValue& dict);
   };
 
@@ -328,15 +334,21 @@ struct SubmitOrderReq : ReqHead {
   uint32 order_nums;
   OrderOperation op;
 
-  std::vector<std::string> code_list;
-  std::vector<double> price_list;
-
   bool Deserialize(DictionaryValue& dict);
   void Dump(std::ostringstream& oss);
 };
 
+struct SubmitOrderRes : ResHead {
+  std::string code;
+  std::string name;
+  OrderId order_id;
+  bool Serialize(DictionaryValue& dict);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// 批量委托买卖
 struct SubmitMultiOrderReq : ReqHead {
-  const static uint32 ID = 111;
+  const static uint32 ID = 131;
 
   std::string code_strs;
   std::string price_strs;
@@ -355,8 +367,10 @@ struct SubmitMultiOrderReq : ReqHead {
   void Dump(std::ostringstream& oss);
 };
 
-struct SubmitOrderRes : ResHead {
-  OrderId order_id;
+struct SubmitMultiOrderRes : ResHead {
+  typedef std::vector<SubmitOrderRes> MultList;
+  MultList succ_mult_list;
+  MultList fail_mult_list;
 
   bool Serialize(DictionaryValue& dict);
 };
@@ -439,6 +453,30 @@ struct ModifyInitCapitalReq : ReqHead {
 struct ModifyInitCapitalRes : ResHead {
   double capital;
   bool Serialize(DictionaryValue& dict);
+};
+
+struct ModifyGroupNameReq : ReqHead {
+  const static uint32 ID = 117;
+
+  GroupId group_id;
+  std::string group_name;
+
+  virtual bool Deserialize(DictionaryValue& dict);
+  virtual void Dump(std::ostringstream& oss);
+};
+
+struct ModifyGroupNameRes : ResHead {
+  std::string group_name;
+  virtual bool Serialize(DictionaryValue& dict);
+};
+
+struct DelGroupReq : ReqHead {
+  static const uint32 DEL_GROUP_ID = 118;
+
+  GroupId group_id;
+
+  virtual bool Deserialize(DictionaryValue& dict);
+  virtual void Dump(std::ostringstream& oss);
 };
 
 } /* namespace strade_user */
