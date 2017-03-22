@@ -16,7 +16,8 @@ enum netoperatorcode{
 
   USER_ACCOUNT_INFO = 30001,
   YIELDS_HISTORY = 30002,
-
+  MODIFY_GROUP_NAME = 30003,
+  DELETE_GROUP = 30004,
 
 };
 

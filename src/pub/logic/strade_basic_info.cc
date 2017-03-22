@@ -220,6 +220,11 @@ bool StockTotalInfo::GetCurrRealMarketInfo(StockRealInfo& stock_real_info) {
   STOCK_REAL_MAP::reverse_iterator iter(
       data_->stock_real_map_.rbegin());
   stock_real_info = iter->second;
+
+  // 是否停牌
+  if (0.0 == stock_real_info.open) {
+    stock_real_info.price = stock_real_info.close;
+  }
   return true;
 }
 

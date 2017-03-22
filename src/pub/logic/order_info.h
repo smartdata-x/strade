@@ -108,6 +108,7 @@ class OrderInfo : public strade_logic::Observer,
   double transfer_fee() const { return data_->transfer_fee_; }
   double amount() const { return data_->amount_; }
   double expected_price() const { return data_->expected_price_; }
+  double fee() const {return data_->stamp_duty_ + data_->commission_ + data_->transfer_fee_; }
 
   void set_available_capital(double available_capital) {
     data_->available_capital_ = available_capital;

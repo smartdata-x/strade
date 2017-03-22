@@ -56,10 +56,8 @@ void StradeShareTimer::Update(int opcode, void* param) {
 bool StradeShareTimer::OnTimeLoadStockVisit() {
   static const std::string LOAD_STOCK_VISIT_SQL =
       "SELECT stock_code, SUM(COUNT) FROM `stock_visit` GROUP BY stock_code";
-  if(StockUtil::Instance()->is_trading_time()) {
-    ss_engine_->AddMysqlAsyncJob(2, LOAD_STOCK_VISIT_SQL,
-                                 OnTimeLoadStockVisitCallback, MYSQL_READ);
-  }
+  ss_engine_->AddMysqlAsyncJob(2, LOAD_STOCK_VISIT_SQL,
+                               OnTimeLoadStockVisitCallback, MYSQL_READ);
   return true;
 }
 
@@ -82,9 +80,6 @@ void StradeShareTimer::OnTimeLoadStockVisitCallback(
       stock_total_info.set_visit_num(visit_count);
     }
   }
-
-//  LOG_DEBUG2("load stock visit num finshed! size=%d",
-//             rows_vec.size());
 }
 
 bool StradeShareTimer::JudgeUpdateTodayHist() {

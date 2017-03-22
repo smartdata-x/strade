@@ -3,7 +3,7 @@
 ## 程序名
 PROC_NAME = user_account_info
 ## 输出文件名
-OUTPUT_FILE = /var/www/cgi-bin/strade/yields/1/$(PROC_NAME).fcgi
+OUTPUT_FILE = /var/www/cgi-bin/strade/yields/$(PROC_NAME).fcgi
 LIBRARY_PATH = ./../../../../library
 PUB_PATH = ./../../../pub
 FCGI_MODULE_PATH = ${PUB_PATH}/fcgimodule/

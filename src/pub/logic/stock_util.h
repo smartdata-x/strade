@@ -334,7 +334,7 @@ class StockUtil {
     sprintf(str_hour_time, "%02d%02d%02d", current_tm.tm_hour,
             current_tm.tm_min, current_tm.tm_sec);
     //LOG_MSG2("str_hour_time=%s", str_hour_time);
-    if (strcmp(str_hour_time, "092500") < 0
+    if (strcmp(str_hour_time, "093000") < 0
         || strcmp(str_hour_time, "150000") > 0
         || (strcmp(str_hour_time, "113000") > 0
             && strcmp(str_hour_time, "130000") < 0))

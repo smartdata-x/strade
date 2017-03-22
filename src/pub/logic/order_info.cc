@@ -134,7 +134,9 @@ bool OrderInfo::InitFinishedOrder(MYSQL_ROW row) {
 
 void OrderInfo::Update(int opcode, void* param) {
   engine_ = static_cast<SSEngine*>(param);
-  assert(NULL != param);
+  StockGroup::engine_ = engine_;
+  UserInfo::engine_ = engine_;
+  assert(NULL != engine_);
   switch (opcode) {
     case strade_logic::REALTIME_MARKET_VALUE_UPDATE: {
       OnStockUpdate();
@@ -164,30 +166,21 @@ bool OrderInfo::MakeADeal(double price) {
   data_->deal_price_ = price;
   data_->deal_num_ = data_->order_num_;
 
-  double amount = data_->deal_price_ * data_->deal_num_;
+  data_->amount_ = data_->deal_price_ * data_->deal_num_;
 
-  // TODO 佣金计算
-  // double commission = data_->amount_ * COMMISSION_RATE;
-  double commission = amount * COMMISSION_RATE;
+  // 佣金计算
+  double commission = data_->amount_ * COMMISSION_RATE;
   data_->commission_ = ROUND_COMMISSION(commission);
-  data_->amount_ += data_->commission_;
 
+  // 过户费 （只有上交所股票）
   if (IS_SH_CODE(data_->code_)) {
     data_->transfer_fee_ = TRANSFER_FEE(data_->deal_num_);
   }
-  data_->amount_ += data_->transfer_fee_;
 
+  // 卖出计算印花税
   if (SELL == data_->op_) {
-    data_->stamp_duty_ = amount * STAMP_DUTY_RATE;
+    data_->stamp_duty_ = data_->amount_ * STAMP_DUTY_RATE;
   }
-
-//  data_->amount_ = amount +
-//      data_->commission_ +
-//      data_->transfer_fee_ +
-//      data_->stamp_duty_;
-
-  //TODO 成交额不加费用
-  data_->amount_ = amount;
 
   UserEngine* engine = UserEngine::GetUserEngine();
   UserInfo* user = engine->GetUser(data_->user_id_);
@@ -203,7 +196,7 @@ void OrderInfo::OnStockUpdate() {
 #ifndef DEBUG_TEST
   StockUtil* util = StockUtil::Instance();
   if (!util->is_trading_time()) {
-    LOG_ERROR("不在交易时间");
+//    LOG_ERROR("不在交易时间");
     return;
   }
 #endif
